@@ -48,6 +48,7 @@ var Akun = require(__dirname+"/../model/Akun.model");
 var DetailBelanja = require(__dirname+"/../model/DetailBelanja.model");
 
 var UraianAkun = require(__dirname+"/../model/UraianAkun.model");
+const RDJK = require("../model/RDJK.model")
 
 var Setting = require(__dirname+"/../model/Setting.model");
 var User = require(__dirname+"/../model/User.model");
@@ -69,6 +70,7 @@ var clj_fuzzy = require('clj-fuzzy');
 var terbilang = require('./../src/functions/terbilang')
 var formatUang = require('./../src/functions/formatUang')
 var timeOutUnlink = require('./../src/functions/timeOutUnlink')
+const sendMsg = require('../src/functions/sendMsg')
 
 const moment = require('moment');
 
@@ -2513,31 +2515,32 @@ pok.socket = function(io, connections, client){
 				clientData.data.anggota.pop()
 			}
 		}
-		if(moment(clientData.data.waktu_mulai).isSame(clientData.data.waktu_selesai)){
-			clientData.data.waktu_overall = moment(clientData.data.waktu_mulai).format('DD MMMM YYYY')
-		} else if(moment(clientData.data.waktu_mulai).format('MM') === moment(clientData.data.waktu_selesai).format('MM')){
-			clientData.data.waktu_overall = moment(clientData.data.waktu_mulai).format('DD')+' - '+moment(clientData.data.waktu_selesai).format('DD')+' '+moment(clientData.data.waktu_mulai).format('MMMM YYYY')
-		} else{
-			clientData.data.waktu_overall = moment(clientData.data.waktu_mulai).format('DD MMMM YYYY')+' - '+moment(clientData.data.waktu_selesai).format('DD MMMM YYYY')
-		}
-		console.log(clientData.data);
-		async.series([
-			(first_cb)=>{
-				handleRDJK(
-					clientData.data, 
-					clientData.toPdf, //to pdf?
-					first_cb
-				)
-			}
-		], (err, finish)=>{
-			if(clientData.toPdf){
-				cb('/rdjk/'+finish[0].match(/\d{2}.*\.\w{3,4}$/)[0])
+		var rdjk = new RDJK(clientData.data);
+		rdjk.save((error)=>{
+			if(error){
+				cb(false)
+				_.each(error.errors, (item, i, arr)=>{
+					sendMsg(client, item.message)
+				})
 			} else{
-				console.log(finish[0]);
-				cb(finish[0])
+				async.series([
+					(first_cb)=>{
+						handleRDJK(
+							rdjk, 
+							clientData.toPdf, //to pdf?
+							first_cb
+						)
+					}
+				], (err, finish)=>{
+					if(clientData.toPdf){
+						cb('/rdjk/'+finish[0].match(/\d{2}.*\.\w{3,4}$/)[0])
+					} else{
+						cb(finish[0])
+					}
+					sendMsg(client, 'Surat telah dibuat.')
+				})
 			}
-		})
-		
+		})		
 	})
 }
 
@@ -2659,8 +2662,8 @@ function handleRDJK(data, toPdf, final_cb){
 					mergeDataToTemplate_RDJK, 
 					toPdf, 
 					__dirname+"/../template/rdjk/lembar_honor.xlsx", //path +nama template xlsx 
-					__dirname+"/../template/output/rdjk/"+moment().format('DD-MM-YYYY hh mm ss')+" rdjk honor.xlsx", //path + nama outp docx 
-					__dirname+"/../template/output/rdjk/"+moment().format('DD-MM-YYYY-hh-mm-ss')+"-rdjk-honor-xlsx.pdf", //path + nama outp pdf 
+					__dirname+"/../template/output/rdjk/"+moment().format('DD-MM-YYYY hh mm ss')+" rdjk spj.xlsx", //path + nama outp docx 
+					__dirname+"/../template/output/rdjk/"+moment().format('DD-MM-YYYY-hh-mm-ss')+"-rdjk-spj-xlsx.pdf", //path + nama outp pdf 
 					cb_5
 				)
 			},

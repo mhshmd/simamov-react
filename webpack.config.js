@@ -3,11 +3,11 @@ const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const extractCSS = new ExtractTextPlugin('[name].fonts.css');
 
 var config = {
-    entry: __dirname+'/src/js/RDJK/index.js',
+    entry: __dirname+'/src/js/Surtug/index.js',
 
     output: {
         path: __dirname+'/js/view',
-        filename: 'RDJK.js',
+        filename: 'surtug.js',
     },
     devServer: {
         inline: true,

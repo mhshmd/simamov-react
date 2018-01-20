@@ -50,6 +50,7 @@
     "nodemon": "^1.11.0",
     "path": "0.12.7",
     "pdf-merge": "1.0.2",
+    "pikaday": "1.7.0",
     "react": "16.2.0",
     "react-bootstrap-typeahead": "2.0.2",
     "react-datetime": "2.11.1",
@@ -83,6 +84,8 @@
     "redux-logger": "3.0.6",
     "snyk": "^1.40.1",
     "webpack": "3.10.0",
-    "webpack-dev-server": "2.9.7"
+    "webpack-dev-middleware": "2.0.4",
+    "webpack-dev-server": "2.9.7",
+    "webpack-hot-middleware": "2.21.0"
   }
 }

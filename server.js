@@ -5,10 +5,11 @@ var app = express();
 
 var server = require('http').createServer(app);  
 var io = require('socket.io')(server);
-//clients connection
-var connections = {};
 
 require('dotenv').config();
+
+//clients connection
+var connections = {};
 
 //Security
 var helmet = require('helmet');
@@ -148,6 +149,9 @@ app.use('/pegawai', pegawai);
 //POK
 var pok = require('./controllers/pok.js');
 app.use('/pok', pok);
+//SURTUG REACT
+var surtug = require('./controllers/surtug.js');
+app.use('/surtug', surtug);
 //RDJK
 var rdjk = require('./controllers/rdjk.js');
 app.use('/rdjk', rdjk);
@@ -189,6 +193,7 @@ io.on('connection', function(client) {
 
 	pok.socket(io, connections, client);
 	sppd.socket(io, connections, client);
+	surtug.socket(io, connections, client);
 	spj.socket(io, connections, client);
 	pegawai.socket(io, connections, client);
 	admin.socket(io, connections, client);

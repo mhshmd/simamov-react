@@ -91,9 +91,13 @@ class RDJK extends React.Component {
     downloadSurat() {
         this.setState({isDownloadingSurat: true});
         socket.emit('buat rdjk', {data: this.state.data, toPdf: false}, (files)=>{
-            _.each(files, (item, i, arr)=>{
-                window.open(location.protocol+'//'+location.host+"/result/rdjk/"+item);
-            })
+            if(files === false){
+
+            } else{
+                _.each(files, (item, i, arr)=>{
+                    window.open(location.protocol+'//'+location.host+"/result/rdjk/"+item);
+                })
+            }
             this.setState({isDownloadingSurat: false})
         })
     }
@@ -253,7 +257,11 @@ class RDJK extends React.Component {
         console.log(this.state.data);
         this.setState({isSubmitBuatSurat: true})
         socket.emit('buat rdjk', {data: this.state.data, toPdf: true}, (pdfLink)=>{
-            setPDFPreviewSRC(location.protocol+'//'+location.host+"/result/"+pdfLink)
+            if(pdfLink === false){
+
+            } else{
+                setPDFPreviewSRC(location.protocol+'//'+location.host+"/result/"+pdfLink)
+            }
             this.setState({isSubmitBuatSurat: false})
         })
     }
