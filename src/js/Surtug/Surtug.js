@@ -16,6 +16,7 @@ import DetailBelanjaSelector from '../../component/DetailBelanjaSelector';
 import {setPDFPreviewSRC} from '../../redux/actions/rdjkActions'
 import getNumber from '../../functions/getNumber'
 import formatUang from '../../functions/formatUang'
+import toTitleCase from '../../functions/toTitleCase'
 
 import '../../../css/typeahead-react.css';
 import '../../../css/react-datetime.css';
@@ -28,19 +29,34 @@ class RDJK extends React.Component {
             isSubmitBuatSurat: false,
             isDownloadingSurat: false,
             isLoading: false,
+            isOutputLoading: false,
+            isProvLoading: false,
+            isKabLoading: false,
+            isOrgLoading: false,
             importPgwModal: false,
             ygBepergianModal: false,
             options: [],
+            penanda_tgn_st_list: [
+                {_id:'19580311 198003 1 004', nama: 'Dr. Hamonangan Ritonga, M.Sc.'},
+                {_id:'19671022 199003 2 002', nama: 'Dr. Erni Tri Astuti, M.Math.'},
+            ],
+            penanda_tgn_legalitas_list: [
+                {_id:'19700513 199211 1 001', nama: 'Bambang Nurcahyo, S.E., M.M.'},
+                {_id:'19700926 199211 1 001', nama: 'Nurseto Wisnumurti, S.Si, M.Stat.'},
+            ],
+            penanda_tgn_st_selected: '',
+            penanda_tgn_legalitas_selected: '',
             yang_bepergian: [],
             data: {
                 starting_sppd: '1/SPD/STIS/2018',
                 tugas: 'Perjalanan Tim Advance Dosen dalam rangka Penelitian Program DIV',
                 posisi_kota: 'Luar Kota',
                 jenis_ang: 'Plane',
+                output: [],
                 kode_output: '',
-                prov: '',
-                kab: '',
-                org: '',
+                prov: [],
+                kab: [],
+                org: [],
                 tgl_berangkat: new Date(),
                 tgl_kembali: new Date(),
                 tgl_ttd_surtug: new Date(),
@@ -93,20 +109,23 @@ class RDJK extends React.Component {
                 }
             }
         })
-        // this.setState({yang_bepergian})
+        this.setState({yang_bepergian})
     }
 
     toggleYgBepergianModal() {
         this.setState({
             ygBepergianModal: !this.state.ygBepergianModal
+        }, ()=>{
+            setTimeout(()=>{
+                if(!this.state.ygBepergianModal){
+                    var yang_bepergian = [...this.state.yang_bepergian];
+                    if(!yang_bepergian[yang_bepergian.length-1].nama){
+                        yang_bepergian.pop();
+                        this.setState({yang_bepergian})
+                    }
+                }
+            }, 1000)
         });
-        // var yb = [...this.state.yang_bepergian];
-        // if(yb.length > 0){
-        //     (yb[yb.length-1].nama==='')&&yb.pop()
-        // }
-        // this.setState({
-        //     yang_bepergian: [...yb]
-        // });
     }
 
     handleInputChange(e){
@@ -117,11 +136,12 @@ class RDJK extends React.Component {
         }
     }
 
-    buatSurat() {
-        console.log(this.state.yang_bepergian);
-        return
+    buatSurat(e, toPdf = true) {
+        console.log(this.state);
+        // return
         this.setState({isSubmitBuatSurat: true})
-        socket.emit('surtug_buat_surat', this.state, (pdfLink)=>{
+        const { yang_bepergian, data } = this.state;
+        socket.emit('surtug_buat_surat', {toPdf: toPdf, yang_bepergian: yang_bepergian, data: data}, (pdfLink)=>{
             // console.log(pdfLink);
             // return;
             if(pdfLink === false){
@@ -129,12 +149,15 @@ class RDJK extends React.Component {
             } else{
                 setPDFPreviewSRC(location.protocol+'//'+location.host+"/result/"+pdfLink)
             }
-            this.setState({isSubmitBuatSurat: false})
+            this.setState({
+                isSubmitBuatSurat: false, isDownloadingSurat: false
+            })
         })
     }
 
     downloadSurat() {
-        this.setState({isDownloadingSurat: true});
+        this.setState({ isDownloadingSurat: true });
+        buatSurat(e, toPdf = false)
     }
 
     toggleimportPgwModal() {
@@ -150,8 +173,37 @@ class RDJK extends React.Component {
         const bold = {fontWeight: 'bold'}
         const noMarginBottom = {marginBottom: 0}
 
-        const {starting_sppd, tugas, jenis_ang, output, kode_output, prov, kab, org, posisi_kota, tgl_berangkat, tgl_kembali, penanda_tgn_st, penanda_tgn_legalitas, tgl_ttd_surtug} = this.state.data
-        const {isSubmitBuatSurat, isDownloadingSurat, isLoading, options, yang_bepergian} = this.state
+        const {
+            starting_sppd, 
+            tugas, 
+            jenis_ang, 
+            output, 
+            kode_output, 
+            prov, 
+            kab, 
+            org, 
+            posisi_kota, 
+            tgl_berangkat, 
+            tgl_kembali, 
+            penanda_tgn_st, 
+            penanda_tgn_legalitas, 
+            tgl_ttd_surtug
+        } = this.state.data
+        const {
+            isSubmitBuatSurat, 
+            isDownloadingSurat, 
+            isLoading, 
+            isOutputLoading, 
+            isProvLoading, 
+            isKabLoading, 
+            isOrgLoading, 
+            options, 
+            yang_bepergian, 
+            penanda_tgn_st_list, 
+            penanda_tgn_legalitas_list, 
+            penanda_tgn_st_selected, 
+            penanda_tgn_legalitas_selected
+        } = this.state
 
         return (
             <div>
@@ -190,7 +242,7 @@ class RDJK extends React.Component {
                                                             }.bind(this));
                                                         }}
                                                         options={options}
-                                                        defaultSelected={yang_bepergian}
+                                                        selected={yang_bepergian}
                                                         onChange={(selected) => {
                                                             this.setState({yang_bepergian: selected});
                                                         }}
@@ -246,7 +298,35 @@ class RDJK extends React.Component {
                                                     <Label style={bold}>Output/Komponen <span>*</span></Label>
                                                     <Row>
                                                         <Col md='9'>
-                                                            <Input onChange={this.handleInputChange.bind(this)} type="text" id="output" name='output' value={output} required/>
+                                                            <AsyncTypeahead
+                                                                clearButton={true}
+                                                                labelKey='urkmpnen'
+                                                                isLoading={isOutputLoading}
+                                                                onSearch={query => {
+                                                                    this.setState({isOutputLoading: true});
+                                                                    socket.emit('komponen_list', query, (data) => {
+                                                                        this.setState({
+                                                                            isOutputLoading: false,
+                                                                            options: data,
+                                                                        })
+                                                                    });
+                                                                }}
+                                                                options={options}
+                                                                selected={output}
+                                                                onChange={(output) => {
+                                                                    var data = {...this.state.data}
+                                                                    var data = {...this.state.data}
+                                                                    if(output.length){
+                                                                        data.output = output;
+                                                                        data.kode_output = output[0].kdoutput+'.'+output[0].kdkmpnen;
+                                                                        data.tugas = 'Dalam Rangka '+toTitleCase(output[0].urkmpnen)
+                                                                        this.setState({data: {...data}});
+                                                                    }
+                                                                }}
+                                                                emptyLabel='Tidak ada hasil'
+                                                                highlightOnlyResult={true}
+                                                                selectHintOnEnter={true}
+                                                            />
                                                             <span className="help-block text-muted">uraian</span>
                                                         </Col>
                                                         <Col md='3'>
@@ -267,7 +347,32 @@ class RDJK extends React.Component {
                                                         <Label>Provinsi <span>*</span></Label>
                                                     </Col>
                                                     <Col md='9'>
-                                                        <Input onChange={this.handleInputChange.bind(this)} type="text" id="prov" name='prov' value={prov} required/>
+                                                        <AsyncTypeahead
+                                                            clearButton={true}
+                                                            labelKey='nama'
+                                                            isLoading={isProvLoading}
+                                                            onSearch={query => {
+                                                                this.setState({isProvLoading: true});
+                                                                socket.emit('prov_list', {'q': query}, (data) => {
+                                                                    this.setState({
+                                                                        isProvLoading: false,
+                                                                        options: data,
+                                                                    })
+                                                                });
+                                                            }}
+                                                            options={options}
+                                                            selected={prov}
+                                                            onChange={(prov) => {
+                                                                var data = {...this.state.data}
+                                                                if(prov.length){
+                                                                    data.prov = prov;
+                                                                    this.setState({data: {...data}});
+                                                                }
+                                                            }}
+                                                            emptyLabel='Tidak ada hasil'
+                                                            highlightOnlyResult={true}
+                                                            selectHintOnEnter={true}
+                                                        />
                                                     </Col>
                                                 </FormGroup>
                                                 <FormGroup row>
@@ -275,7 +380,34 @@ class RDJK extends React.Component {
                                                         <Label>Kabupaten</Label>
                                                     </Col>
                                                     <Col md='9'>
-                                                        <Input onChange={this.handleInputChange.bind(this)} type="text" id="kab" name='kab' value={kab} required/>
+                                                        <AsyncTypeahead
+                                                            clearButton={true}
+                                                            labelKey='nama'
+                                                            isLoading={isKabLoading}
+                                                            onSearch={query => {
+                                                                this.setState({isKabLoading: true});
+                                                                if(prov[0]){
+                                                                    socket.emit('kab_list', {'q': query, 'prov': prov[0]._id}, (data) => {
+                                                                        this.setState({
+                                                                            isKabLoading: false,
+                                                                            options: data,
+                                                                        })
+                                                                    });
+                                                                }
+                                                            }}
+                                                            options={options}
+                                                            selected={kab}
+                                                            onChange={(kab) => {
+                                                                var data = {...this.state.data}
+                                                                if(kab.length){
+                                                                    data.kab = kab;
+                                                                    this.setState({data: {...data}});
+                                                                }
+                                                            }}
+                                                            emptyLabel='Tidak ada hasil'
+                                                            highlightOnlyResult={true}
+                                                            selectHintOnEnter={true}
+                                                        />
                                                     </Col>
                                                 </FormGroup>
                                                 <FormGroup row>
@@ -283,7 +415,33 @@ class RDJK extends React.Component {
                                                         <Label>Organisasi</Label>
                                                     </Col>
                                                     <Col md='9'>
-                                                        <Input onChange={this.handleInputChange.bind(this)} type="text" id="org" name='org' value={org} required/>
+                                                        <AsyncTypeahead
+                                                            clearButton={true}
+                                                            labelKey='nama'
+                                                            isLoading={isOrgLoading}
+                                                            allowNew={true}
+                                                            newSelectionPrefix='Pilih: '
+                                                            onSearch={query => {
+                                                                this.setState({isOrgLoading: true});
+                                                                socket.emit('org_list', query, (data) => {
+                                                                    this.setState({
+                                                                        isOrgLoading: false,
+                                                                        options: data,
+                                                                    })
+                                                                });
+                                                            }}
+                                                            options={options}
+                                                            selected={org}
+                                                            onChange={(org) => {
+                                                                var data = {...this.state.data}
+                                                                if(org.length){
+                                                                    data.org = org;
+                                                                    this.setState({data: {...data}});
+                                                                }
+                                                            }}
+                                                            emptyLabel='Tidak ada hasil'
+                                                            selectHintOnEnter={true}
+                                                        />
                                                     </Col>
                                                 </FormGroup>
                                                 <FormGroup row>
@@ -292,11 +450,11 @@ class RDJK extends React.Component {
                                                     </Col>
                                                     <Col md='12'>
                                                         <FormGroup check className="form-check-inline">
-                                                            <Label check htmlFor="Plane">
-                                                                <Input onChange={this.handleInputChange.bind(this)} type="radio" id="Plane" name="posisi_kota" value="Luar Kota" checked={posisi_kota==="Luar Kota"}/> Luar Kota
+                                                            <Label check htmlFor="Luar-Kota">
+                                                                <Input onChange={this.handleInputChange.bind(this)} type="radio" id="Luar-Kota" name="posisi_kota" value="Luar Kota" checked={posisi_kota==="Luar Kota"}/> Luar Kota
                                                             </Label>
-                                                            <Label check htmlFor="Kereta-Api">
-                                                                <Input onChange={this.handleInputChange.bind(this)} type="radio" id="Kereta-Api" name="posisi_kota" value="Dalam Kota (>8 jam)" checked={posisi_kota==="Dalam Kota (>8 jam)"}/> Dalam Kota (>8 jam)
+                                                            <Label check htmlFor="Dalam-Kota">
+                                                                <Input onChange={this.handleInputChange.bind(this)} type="radio" id="Dalam-Kota" name="posisi_kota" value="Dalam Kota (>8 jam)" checked={posisi_kota==="Dalam Kota (>8 jam)"}/> Dalam Kota (>8 jam)
                                                             </Label>
                                                         </FormGroup>
                                                     </Col>
@@ -363,20 +521,38 @@ class RDJK extends React.Component {
                                                 </FormGroup>
                                                 <FormGroup>
                                                     <Label style={bold}>Penanda Tangan Surat Tugas <span>*</span></Label>
-                                                    <Input onChange={this.handleInputChange.bind(this)} type="select" id="penanda_tgn_st" name='penanda_tgn_st' value={penanda_tgn_st} required>
-                                                        <option value="0">Please select</option>
-                                                        <option value="1">Option #1</option>
-                                                        <option value="2">Option #2</option>
-                                                        <option value="3">Option #3</option>
+                                                    <Input 
+                                                        type="select" 
+                                                        id="penanda_tgn_st" 
+                                                        name='penanda_tgn_st'
+                                                        onChange={(e)=>{
+                                                            var data = {...this.state.data};
+                                                            data.penanda_tgn_st = _.findWhere(penanda_tgn_st_list, {_id: e.target.value});
+                                                            this.setState({
+                                                                penanda_tgn_st_selected: e.target.value,
+                                                                data: {...data}
+                                                            })
+                                                        }}
+                                                        defaultValue={penanda_tgn_st_selected}>
+                                                        {penanda_tgn_st_list.map(person => <option key={person._id} value={person._id}>{person.nama}</option>)}
                                                     </Input>
                                                 </FormGroup>
                                                 <FormGroup>
                                                     <Label style={bold}>Penanda Tangan Legalitas <span>*</span></Label>
-                                                    <Input onChange={this.handleInputChange.bind(this)} type="select" id="penanda_tgn_legalitas" name='penanda_tgn_legalitas' value={penanda_tgn_legalitas} required>
-                                                        <option value="0">Please select</option>
-                                                        <option value="1">Option #1</option>
-                                                        <option value="2">Option #2</option>
-                                                        <option value="3">Option #3</option>
+                                                    <Input
+                                                        type="select" 
+                                                        id="penanda_tgn_st" 
+                                                        name='penanda_tgn_st'
+                                                        onChange={(e)=>{
+                                                            var data = {...this.state.data};
+                                                            data.penanda_tgn_legalitas = _.findWhere(penanda_tgn_legalitas_list, {_id: e.target.value});
+                                                            this.setState({
+                                                                penanda_tgn_legalitas_selected: e.target.value,
+                                                                data: {...data}
+                                                            })
+                                                        }}
+                                                        defaultValue={penanda_tgn_legalitas_selected}>
+                                                        {penanda_tgn_legalitas_list.map(person => <option key={person._id} value={person._id}>{person.nama}</option>)}
                                                     </Input>
                                                 </FormGroup>
                                                 <FormGroup>

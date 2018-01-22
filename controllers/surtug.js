@@ -48,8 +48,9 @@ surtug.socket = function(io, connections, client){
     })
     
     client.on('surtug_buat_surat', (clientData, cb)=>{
+        console.log(clientData);
+        return
         const toPdf = false;
-        clientData.yang_bepergian.pop()
         var task = [];
         var final_data = []
         var starting_sppd = +clientData.data.starting_sppd.match(/^\d{1,4}/)[0]
@@ -95,7 +96,6 @@ var angularParser = function(tag) {
 }
 
 function generateDocx(data, toPDF, docxTemplatePath, outputDocxPath, outputPDFPath, cb){
-    console.log(data);
 	//#### docx generator
 	var template = fs.readFileSync(docxTemplatePath,"binary");
 

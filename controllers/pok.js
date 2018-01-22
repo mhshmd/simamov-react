@@ -2568,11 +2568,11 @@ expressions.filters.money = function(input) {
 }
 expressions.filters.first_nama = function(input) {
     if(!input) return 'None';
-    return input[0].nama;
+    return input[1].nama;
 }
 expressions.filters.first_jabatan = function(input) {
     if(!input) return 'None';
-    return input[0].jabatan;
+    return input[1].jabatan;
 }
 expressions.filters.ttd = function(input) {
 	if(input%2==0){
@@ -2863,7 +2863,10 @@ function mergeDataToTemplate_RDJK_SurtugLampiran(data, workbook) {
 	var next_last_edge = 35;
 	var last_row_edge, pair_row_edge;
 
-	_.each(data.anggota, function(item, index, list){
+	var data_temp = [...data.anggota]
+	data_temp.splice(1,1)
+
+	_.each(data_temp, function(item, index, list){
 		var r;
 		if( row === next_last_edge+1){
 			total_row_per_page = 33
@@ -2919,8 +2922,8 @@ function mergeDataToTemplate_RDJK_SurtugLampiran(data, workbook) {
 
 function mergeDataToTemplate_RDJK_SKLampiran(data, workbook) {
 	workbook.definedName("nomor").value('NOMOR  '+data.nomor_sk);
-	workbook.definedName("tentang").value('TENTANG PEMBAHASAN '+data.pembahasan.toUpperCase()+' DALAM RANGKA '+data.pok.komponen.urkmpnen.toUpperCase());
-	workbook.definedName("judul_tabel").value('DAFTAR NAMA PESERTA PEMBAHASAN '+data.pembahasan.toUpperCase()+' DALAM RANGKA '+data.pok.komponen.urkmpnen.toUpperCase());
+	workbook.definedName("tentang").value('TENTANG PEMBAHASAN '+data.pembahasan.toUpperCase()+' DALAM RANGKA '+data.pok.skomponen.urskmpnen.toUpperCase()+' '+data.pok.komponen.urkmpnen.toUpperCase());
+	workbook.definedName("judul_tabel").value('DAFTAR NAMA PESERTA PEMBAHASAN '+data.pembahasan.toUpperCase()+' DALAM RANGKA '+data.pok.skomponen.urskmpnen.toUpperCase()+' '+data.pok.komponen.urkmpnen.toUpperCase());
 
 	var row = 9;
 	var nmr = 1;
@@ -3004,7 +3007,7 @@ function mergeDataToTemplate_RDJK_SKLampiran(data, workbook) {
 		[,],
 		[,],
 		['Dr. Hamonangan Ritonga, M.Sc',],
-		['NIP. 195803111980031004',]
+		['NIP. 19580311 198003 1 004',]
 	]);
 	//merge
 	workbook.sheet(0).range('C'+(row+1)+':D'+(row+1)).merged(true).style('horizontalAlignment', 'center')
@@ -3019,7 +3022,7 @@ function mergeDataToTemplate_RDJK_SKLampiran(data, workbook) {
 }
 
 function mergeDataToTemplate_RDJK(data, workbook) {
-	workbook.definedName("daftar").value('DAFTAR BIAYA RAPAT PEMBAHASAN '+data.pembahasan.toUpperCase());
+	workbook.definedName("daftar").value('DAFTAR BIAYA RAPAT PEMBAHASAN '+data.pembahasan.toUpperCase()+' DALAM RANGKA '+data.pok.skomponen.urskmpnen.toUpperCase()+' '+data.pok.komponen.urkmpnen.toUpperCase());
 	kopTransform(data, workbook);
 
 	var row = 14;
@@ -3236,7 +3239,7 @@ function mergeDataToTemplate_RDJK(data, workbook) {
 			[,,,,,,,,],
 			[,,,,,,,,],
 			['Ary Wahyuni, SST',,,,,'Indra, S.Si., M.M.',,,data.pembuat_daftar.nama],
-			['NIP. 198301022007012007',,,,,'NIP. 196103131986011001',,,'NIP. '+data.pembuat_daftar._id]
+			['NIP. 19830102 200701 2 007',,,,,'NIP. 19610313 198601 1 001',,,'NIP. '+data.pembuat_daftar._id]
 		]);
 	//Merge TTD
 		workbook.sheet(0).range('F'+(row+2)+':H'+(row+2)).merged(true).style('horizontalAlignment', 'center')

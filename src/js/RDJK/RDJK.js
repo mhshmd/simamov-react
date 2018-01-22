@@ -49,11 +49,11 @@ class RDJK extends React.Component {
             }],
             
             data: {
-                nomor_sk: '067/KPA/STIS/'+new Date().getFullYear(),
+                nomor_sk: '003/KPA/STIS/'+new Date().getFullYear(),
                 tgl_sk: new Date(),
                 pok: {},
-                pembahasan: 'Revisi DIPA',
-                mengingat_4: 'Undang-Undang No. 15 Tahun 2016 tentang Anggaran Pendapatan dan Belanja Negara Tahun Anggaran 2017',
+                pembahasan: 'Kelembagaan STIS',
+                mengingat_4: 'Undang-Undang No. 15 Tahun 2017 tentang Anggaran Pendapatan dan Belanja Negara Tahun Anggaran 2018',
                 mengingat_10: 'Keputusan Kepala Badan Pusat Statistik No. 323/PA/2017 tentang Pejabat Perbendaharaan Badan Pusat Statistik Tahun Anggaran 2018',
                 nomor_dipa: 'DIPA-054-01.1.690332/2018 Tanggal 5 Desember 2017',
                 honor_gol4: 400000,
@@ -66,7 +66,7 @@ class RDJK extends React.Component {
                 waktu_selesai: new Date(),
                 tgl_buat_spj: new Date(),
 
-                nomor_surtug: '02722.1082',
+                nomor_surtug: '02722.055',
 
                 anggota: [
                     // {_id: 1, index: 1, nama: 'Indra, S.Si', gol: 'IV', jlh_hari: 2}, {_id: 2, nama: 'Bambang Nurcahyo, SE, MM', gol: 'IV', jlh_hari: 2}, 
@@ -511,10 +511,10 @@ class RDJK extends React.Component {
                         <PDFSimplePreview src={this.props.pdfPreviewSource}/>
                     </Col>                    
                 </Row>
-                <Modal isOpen={this.state.anggotaModal} toggle={this.toggleAnggotaModal}>
+                <Modal isOpen={this.state.anggotaModal} toggle={this.toggleAnggotaModal} className='modal-lg'>
                     <ModalHeader toggle={this.toggleAnggotaModal}>Anggota</ModalHeader>
                         <ModalBody>
-                            <HotTable root="hot" ref='anggotaHot' manualColumnResize={true} settings={{
+                            <HotTable root="hot" ref='anggotaHot' width="100%" height="640" manualColumnResize={true} settings={{
                                 data: this.state.data.anggota,
                                 dataSchema: {nama: null, gol: null, jlh_hari: null, upah_perhari: null, jlh_bruto: null, pph21: null, jlh_diterima: null, jabatan: null},
                                 colHeaders: true,
