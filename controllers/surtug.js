@@ -5,6 +5,7 @@ const express = require('express');
 const surtug = express.Router();
 
 const Pegawai = require(__dirname+"/../model/Pegawai.model");
+const SuratTugas2 = require('../model/SuratTugas2.model')
 const levenshtein = require('fast-levenshtein');
 const _ = require('underscore')
 var fs = require('fs');
@@ -19,17 +20,26 @@ const PDFMerge = require('pdf-merge');
 
 const moment = require('moment')
 
+const sendMsg = require('../src/functions/sendMsg')
+
 //Socket.io
 surtug.connections;
 
 surtug.io;
 
-surtug.socket = function(io, connections, client){
+var redisClient;
+
+surtug.setRedisClient = (client)=>{
+	redisClient = client;
+}
+var getLoggedUser = require('./function/getLoggedUser')
+
+surtug.socket = function(io, connections, client, loggedUser){
     surtug.connections = connections;
     surtug.io = io;
     
     client.on('surtug_nama', (q, cb)=>{
-        if(q){
+    if(q){
             q = q.replace(/[-[\]{}()*+?.,\\/^$|#\s]/g, "\\$&");
         }
         Pegawai.find({"nama": new RegExp(q, "i"), active: true}, 'nama gol jabatan', function(err, pegs){
@@ -48,12 +58,25 @@ surtug.socket = function(io, connections, client){
     })
     
     client.on('surtug_buat_surat', (clientData, cb)=>{
-        console.log(clientData);
+        var starting_sppd = clientData.data.starting_sppd.match(/^\d{1,4}/)?+clientData.data.starting_sppd.match(/^\d{1,4}/)[0]:null
+        if(!starting_sppd){
+            sendMsg(client, 'Nomor surat tugas tidak valid.');
+            cb(false);
+        } else if(!clientData.yang_bepergian.length){
+            sendMsg(client, 'Yang bepergian belum ditentukan.');
+            cb(false);
+        }
+        //1. buat objek tiap model
+        //kondisi: ada yang_bepergian, ada data
+        //jika elemen yg bepergian tdk valid, ambil dari data.
+        //simpan
+        _.each(clientData.yang_bepergian, (item, i, arr)=>{
+            // console.log(item, i);
+        })
+        cb(false)
         return
-        const toPdf = false;
-        var task = [];
-        var final_data = []
-        var starting_sppd = +clientData.data.starting_sppd.match(/^\d{1,4}/)[0]
+        //2. simpan (termasuk validasi), notif jika ada yg tidak passed
+        //3. buat docx 
         var st = _.clone(clientData.data);
         st.yang_bepergian = []
         _.each(clientData.yang_bepergian, (item, i, arr)=>{
@@ -66,7 +89,7 @@ surtug.socket = function(io, connections, client){
             [(cb_1)=>{
                 generateDocx(
                     st, 
-                    toPdf, //apakah pdf
+                    clientData.toPdf, //apakah pdf
                     __dirname+"/../template/surtug/surat_tugas.docx", //path +nama template docx
                     __dirname+"/../template/output/surtug/"+moment().format('DD-MM-YYYY hh mm ss')+" surat_tugas.docx", //path + nama outp docx
                     __dirname+"/../template/output/surtug/"+moment().format('DD-MM-YYYY-hh-mm-ss')+"-surat_tugas-docx.pdf", //path + nama outp pdf

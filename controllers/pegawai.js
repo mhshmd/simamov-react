@@ -20,7 +20,14 @@ pegawai.connections;
 
 pegawai.io;
 
-pegawai.socket = function(io, connections, client){
+var redisClient;
+
+pegawai.setRedisClient = (client)=>{
+	redisClient = client;
+}
+var getLoggedUser = require('./function/getLoggedUser')
+
+pegawai.socket = function(io, connections, client, loggedUser){
 	pegawai.connections = connections;
 
 	pegawai.io = io;
@@ -135,7 +142,7 @@ pegawai.socket = function(io, connections, client){
 				cb(cs._id);
 			});
 		}
-		User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Buat pegawai baru : '+data.data.nama}}}, 
+		User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Buat pegawai baru : '+data.data.nama}}}, 
 			function(err, status){
 		})
 	})
@@ -186,7 +193,7 @@ pegawai.socket = function(io, connections, client){
 	    		}
 			})
 		}
-		User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Edit pegawai '+data._id+', '+data.field+' ==> '+data.value}}}, 
+		User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Edit pegawai '+data._id+', '+data.field+' ==> '+data.value}}}, 
 			function(err, status){
 		})
 		
@@ -200,7 +207,7 @@ pegawai.socket = function(io, connections, client){
     		}
 			cb('sukses');
 		})
-		User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Edit pegawai '+data._id+', '+data.field+' ==> '+data.value}}}, 
+		User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Edit pegawai '+data._id+', '+data.field+' ==> '+data.value}}}, 
 			function(err, status){
 		})
 	})
@@ -215,13 +222,13 @@ pegawai.socket = function(io, connections, client){
     		if(!status.nModified){
     			CustomEntity.update({'_id': _id}, {active: false}, function(err, status) {
     				cb('sukses');
-					User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Hapus Entitas Non STIS '+_id}}}, 
+					User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Hapus Entitas Non STIS '+_id}}}, 
 						function(err, status){
 					})	
     			})
     		} else {
     			cb('sukses');
-				User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Hapus pegawai STIS '+_id}}}, 
+				User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Hapus pegawai STIS '+_id}}}, 
 					function(err, status){
 				})	
     		}			

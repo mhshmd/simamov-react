@@ -79,15 +79,22 @@ pok.connections;
 
 pok.io;
 
-pok.socket = function(io, connections, client){
+var redisClient;
+
+pok.setRedisClient = (client)=>{
+	redisClient = client;
+}
+var getLoggedUser = require('./function/getLoggedUser')
+
+pok.socket = function(io, connections, client, loggedUser){
 	pok.connections = connections;
 
 	pok.io = io;
 
 	//tahun anggaran utk pok
-	var thang = client.handshake.session.tahun_anggaran || new Date().getFullYear();
+	var thang = loggedUser.tahun_anggaran || new Date().getFullYear();
 	//user aktiv
-	var user_aktiv = client.handshake.session.username || 'dummy user';
+	var user_aktiv = loggedUser.username || 'dummy user';
 
 	//join sesama tahun anggaran utk broadcast
 	client.join(thang);
@@ -173,7 +180,7 @@ pok.socket = function(io, connections, client){
 				}
 				//sebarkan
 				client.broadcast.to(thang).emit('pok_item_change', {'_id': _id, [element]: user_input[ element ]});
-				User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'POK edit '+_id+': '+element+' => '+user_input[ element ]}}}, 
+				User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'POK edit '+_id+': '+element+' => '+user_input[ element ]}}}, 
     				function(err, status){
 				})
 			});
@@ -839,7 +846,7 @@ pok.socket = function(io, connections, client){
 	    			result[0].pengentry = user_aktiv;
 	    			result[0].timestamp = current_timestamp;
 	    			_id = result[0]._id;
-	    			User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'POK hapus item '+_id}}}, 
+	    			User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'POK hapus item '+_id}}}, 
 	    				function(err, status){
 					})
 	    			delete result[0]._id;
@@ -857,7 +864,7 @@ pok.socket = function(io, connections, client){
 		    			}
 		    			item.pengentry = user_aktiv;
 		    			item.timestamp = current_timestamp;
-		    			User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'POK hapus item '+item._id}}}, 
+		    			User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'POK hapus item '+item._id}}}, 
 		    				function(err, status){
 						})
 		    			item.save();
@@ -981,7 +988,7 @@ pok.socket = function(io, connections, client){
 								else io.sockets.to(thang).emit('pok_new_entry', user_input);
 							if(cb) cb('sukses');
 							sendNotification(client, 'Item berhasil disimpan.')
-							User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
+							User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
 								function(err, status){
 							})
 		    			});
@@ -1019,7 +1026,7 @@ pok.socket = function(io, connections, client){
 								else io.sockets.to(thang).emit('pok_new_entry', user_input);
 							sendNotification(client, 'Item berhasil disimpan.')
 							if(cb) cb('sukses');
-							User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
+							User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
 								function(err, status){
 							})
 		    			});
@@ -1082,7 +1089,7 @@ pok.socket = function(io, connections, client){
 								else io.sockets.to(thang).emit('pok_new_entry', user_input);
 							sendNotification(client, 'Item berhasil disimpan.')
 							if(cb) cb('sukses');
-							User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
+							User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
 								function(err, status){
 							})
 		    			});
@@ -1123,7 +1130,7 @@ pok.socket = function(io, connections, client){
 								else io.sockets.to(thang).emit('pok_new_entry', user_input);
 							sendNotification(client, 'Item berhasil disimpan.')
 							if(cb) cb('sukses');
-							User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
+							User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
 								function(err, status){
 							})
 		    			});
@@ -1192,7 +1199,7 @@ pok.socket = function(io, connections, client){
 								else io.sockets.to(thang).emit('pok_new_entry', user_input);
 							sendNotification(client, 'Item berhasil disimpan.')
 							if(cb) cb('sukses');
-							User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
+							User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
 								function(err, status){
 							})
 		    			});
@@ -1235,7 +1242,7 @@ pok.socket = function(io, connections, client){
 								else io.sockets.to(thang).emit('pok_new_entry', user_input);
 							sendNotification(client, 'Item berhasil disimpan.')
 							if(cb) cb('sukses');
-							User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
+							User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
 								function(err, status){
 							})
 		    			});
@@ -1272,7 +1279,7 @@ pok.socket = function(io, connections, client){
 								else io.sockets.to(thang).emit('pok_new_entry', user_input);
 							if(cb) cb('sukses');
 							sendNotification(client, 'Item berhasil disimpan.')
-							User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
+							User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
 								function(err, status){
 							})
 		    			});
@@ -1307,7 +1314,7 @@ pok.socket = function(io, connections, client){
 						else io.sockets.to(thang).emit('pok_new_entry', user_input);
 					sendNotification(client, 'Item berhasil disimpan.')
 					if(cb) cb('sukses');
-					User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
+					User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Buat item POK baru '+result._id}}}, 
 						function(err, status){
 					})
     			});
@@ -1588,7 +1595,7 @@ pok.socket = function(io, connections, client){
     client.on('entry_submit', function (new_entry, cb){
     	//init tahun, bulan, lower/upper timestamp
     	var y = thang || new Date().getFullYear();
-		var m = new_entry.month || client.handshake.session.bulan_anggaran || new Date().getMonth();
+		var m = new_entry.month || new Date().getMonth();
 		var lower_ts = Math.round(new Date(y, m, 1).getTime()/1000)
 		var upper_ts = Math.round(new Date(y, +m + 1, 0).getTime()/1000) + 86399;
 
@@ -1624,7 +1631,7 @@ pok.socket = function(io, connections, client){
 			    			return
 			    		}
 			    		callback(null, 'ok');
-		    			User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Entry realisasi '+item.penerima_nama+', Rp'+item.jumlah+', Tgl '+item.tgl}}}, 
+		    			User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Entry realisasi '+item.penerima_nama+', Rp'+item.jumlah+', Tgl '+item.tgl}}}, 
 		    				function(err, status){
 						})
 			    		//sebarkan perubahan
@@ -1651,7 +1658,7 @@ pok.socket = function(io, connections, client){
     		_.each(new_entry.data, function(item, index, list){
     			//info umum
     			item.timestamp = new_entry.timestamp;
-	    		item.pengentry = client.handshake.session.username || 'admin';
+	    		item.pengentry = loggedUser.username || 'admin';
 
     			tasks.push(function(callback){
     				//ambil semua pegawai
@@ -1780,7 +1787,7 @@ pok.socket = function(io, connections, client){
 
 			    	//init total, user
 		    		var total_sampai_bln_ini = 0;
-			    	new_entry.data.pengentry = 	client.handshake.session.username || 'admin';
+			    	new_entry.data.pengentry = 	loggedUser.username || 'admin';
 			    	async.series([
 			    		function(cb){
 			    			if(new_entry.data.penerima_id == ''){			    				
@@ -1812,7 +1819,7 @@ pok.socket = function(io, connections, client){
 						    			return
 						    		}
 						    		cb('sukses');
-					    			User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Entry realisasi '+new_entry.data.penerima_nama+', Rp'+new_entry.data.jumlah+', Tgl '+new_entry.data.tgl}}}, 
+					    			User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Entry realisasi '+new_entry.data.penerima_nama+', Rp'+new_entry.data.jumlah+', Tgl '+new_entry.data.tgl}}}, 
 					    				function(err, status){
 									})
 						    		//sebarkan
@@ -1832,7 +1839,7 @@ pok.socket = function(io, connections, client){
 					    			return
 					    		}
 					    		cb('sukses');
-				    			User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Entry realisasi '+new_entry.data.penerima_nama+', Rp'+new_entry.data.jumlah+', Tgl '+new_entry.data.tgl}}}, 
+				    			User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Entry realisasi '+new_entry.data.penerima_nama+', Rp'+new_entry.data.jumlah+', Tgl '+new_entry.data.tgl}}}, 
 				    				function(err, status){
 								})
 					    		if(new_entry.data.tgl_timestamp >= lower_ts && new_entry.data.tgl_timestamp <= upper_ts){
@@ -1926,7 +1933,7 @@ pok.socket = function(io, connections, client){
 							// Load an existing workbook
 							XlsxPopulate.fromFileAsync("./template/RiwayatTemplatePOK.xlsx")
 						    .then(workbook => {
-						    	workbook.definedName("title").value('Riwayat '+data.detail.replace(/\-\s*/g, '')+' ('+(data.periode.match(/\d/)?data.periode:data.periode+' '+client.handshake.session.tahun_anggaran)+')');
+						    	workbook.definedName("title").value('Riwayat '+data.detail.replace(/\-\s*/g, '')+' ('+(data.periode.match(/\d/)?data.periode:data.periode+' '+loggedUser.tahun_anggaran)+')');
 						    	var d = new Date();
 								var date = d.getHours()+':'+d.getMinutes()+':'+d.getSeconds()+', '+d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
 								workbook.definedName("time").value('Generated by simamov at '+date);
@@ -2032,7 +2039,7 @@ pok.socket = function(io, connections, client){
 						// Load an existing workbook
 						XlsxPopulate.fromFileAsync("./template/RiwayatTemplatePOK.xlsx")
 					    .then(workbook => {
-					    	workbook.definedName("title").value('Riwayat '+data.detail.replace(/\-\s*/g, '')+' ('+(data.periode.match(/\d/)?data.periode:data.periode+' '+client.handshake.session.tahun_anggaran)+')');
+					    	workbook.definedName("title").value('Riwayat '+data.detail.replace(/\-\s*/g, '')+' ('+(data.periode.match(/\d/)?data.periode:data.periode+' '+loggedUser.tahun_anggaran)+')');
 					    	var d = new Date();
 							var date = d.getHours()+':'+d.getMinutes()+':'+d.getSeconds()+', '+d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
 							workbook.definedName("time").value('Generated by simamov at '+date);
@@ -2112,7 +2119,7 @@ pok.socket = function(io, connections, client){
 	    		}
 	    	})
     	} else {
-    		var y = client.handshake.session.tahun_anggaran || new Date().getFullYear();
+    		var y = loggedUser.tahun_anggaran || new Date().getFullYear();
     		var m = data.month || new Date().getMonth();
     		var lower_ts = data.lower_ts || Math.round(new Date(y, m, 1).getTime()/1000)
     		var upper_ts = data.upper_ts || Math.round(new Date(y, +m + 1, 0).getTime()/1000) + 86399
@@ -2144,7 +2151,7 @@ pok.socket = function(io, connections, client){
 					// Load an existing workbook
 					XlsxPopulate.fromFileAsync("./template/RiwayatTemplate.xlsx")
 				    .then(workbook => {
-				    	workbook.definedName("title").value('Riwayat Penerimaan '+data.nama_lengkap+' ('+(data.periode.match(/\d/)?data.periode:data.periode+' '+client.handshake.session.tahun_anggaran)+')');
+				    	workbook.definedName("title").value('Riwayat Penerimaan '+data.nama_lengkap+' ('+(data.periode.match(/\d/)?data.periode:data.periode+' '+loggedUser.tahun_anggaran)+')');
 				    	var d = new Date();
 						var date = d.getHours()+':'+d.getMinutes()+':'+d.getSeconds()+', '+d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
 						workbook.definedName("time").value('Generated by simamov at '+date);
@@ -2235,7 +2242,7 @@ pok.socket = function(io, connections, client){
     			return
     		}
     		var y = thang || new Date().getFullYear();
-    		var m = id.month || client.handshake.session.bulan_anggaran || new Date().getMonth();
+    		var m = id.month || new Date().getMonth();
     		var lower_ts = Math.round(new Date(y, m, 1).getTime()/1000)
     		var upper_ts = Math.round(new Date(y, +m + 1, 0).getTime()/1000) + 86399;
     		if(!parent || !parent.realisasi.id(id.target_id)){
@@ -2286,7 +2293,7 @@ pok.socket = function(io, connections, client){
 				    			return
 				    		}
 				    		cb('sukses');
-			    			User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Pindah realisasi '+id.parent_id+' '+to_moved.penerima_nama+', Rp'+to_moved.jumlah+', Tgl '+to_moved.tgl+' ke '+id.new_parent_id}}}, 
+			    			User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Pindah realisasi '+id.parent_id+' '+to_moved.penerima_nama+', Rp'+to_moved.jumlah+', Tgl '+to_moved.tgl+' ke '+id.new_parent_id}}}, 
 			    				function(err, status){
 							})
 				    		//sebarkan
@@ -2301,7 +2308,7 @@ pok.socket = function(io, connections, client){
 				})
     		}
 			if(id.new_parent_id){
-	    		User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Hapus riwayat '+id.parent_id+' > '+id.target_id}}}, 
+	    		User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Hapus riwayat '+id.parent_id+' > '+id.target_id}}}, 
 					function(err, status){
 				})
 			}
@@ -2318,7 +2325,7 @@ pok.socket = function(io, connections, client){
     		}
     		
     		cb('sukses')
-    		User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Edit riwayat '+user_input.parent_id+' > '+user_input.target_id}}}, 
+    		User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Edit riwayat '+user_input.parent_id+' > '+user_input.target_id}}}, 
 				function(err, status){
 			})
     	})
@@ -2351,7 +2358,7 @@ pok.socket = function(io, connections, client){
 					cb('sukses')
 				});
 
-				User.update({_id: client.handshake.session.user_id}, {$push: {"act": {label: 'Transfer realisasi '+ids.detail_id+' ==> '+ids.target}}}, 
+				User.update({_id: client.handshake.cookies.uid}, {$push: {"act": {label: 'Transfer realisasi '+ids.detail_id+' ==> '+ids.target}}}, 
 					function(err, status){
 				})
     		})
@@ -3305,30 +3312,34 @@ function generateXlsx(data, mergeDataToTemplate, toPDF, xlsxTemplatePath, output
 }
 
 function getRealisasiSum(client, lower_ts, upper_ts, bypass){
-	DetailBelanja.find({'thang': client.handshake.session.tahun_anggaran, active: true, realisasi: { $exists: true, $ne: [] }}, 'realisasi', function(err, reals){
-		_.each(reals, function(detail, index, list){
-			var sum = 0;
-			var total_sampai_bln_ini = 0;
-			_.each(detail.realisasi, function(realisasi, index, list){
-				if(bypass){
-					sum += realisasi.jumlah;
-				} else if(realisasi.tgl_timestamp >= lower_ts && realisasi.tgl_timestamp <= upper_ts){
-					sum += realisasi.jumlah;
-				}
-				if(realisasi.tgl_timestamp <= upper_ts) total_sampai_bln_ini += realisasi.jumlah;
-			});
-			client.emit('pok_entry_update_realisasi', {'parent_id': detail._id, 'realisasi': sum, 
-				'total_sampai_bln_ini': total_sampai_bln_ini, 'sum': true});
+	getLoggedUser( redisClient, client.handshake.cookies.uid, ( loggedUser ) => {
+		DetailBelanja.find({'thang': loggedUser.tahun_anggaran, active: true, realisasi: { $exists: true, $ne: [] }}, 'realisasi', function(err, reals){
+			_.each(reals, function(detail, index, list){
+				var sum = 0;
+				var total_sampai_bln_ini = 0;
+				_.each(detail.realisasi, function(realisasi, index, list){
+					if(bypass){
+						sum += realisasi.jumlah;
+					} else if(realisasi.tgl_timestamp >= lower_ts && realisasi.tgl_timestamp <= upper_ts){
+						sum += realisasi.jumlah;
+					}
+					if(realisasi.tgl_timestamp <= upper_ts) total_sampai_bln_ini += realisasi.jumlah;
+				});
+				client.emit('pok_entry_update_realisasi', {'parent_id': detail._id, 'realisasi': sum, 
+					'total_sampai_bln_ini': total_sampai_bln_ini, 'sum': true});
+			})
 		})
 	})
 }
 
 //root pok
 pok.get('/', function(req, res){
-	Setting.findOne({'thang': req.session.tahun_anggaran || new Date().getFullYear(), type:'pok'}, function(err, pok_setting){
-		if(pok_setting) res.render('pok/pok', {layout: false, pok_name: pok_setting.toObject().name, admin: req.session.jenis, username: req.session.username, tahun_anggaran: req.session.tahun_anggaran});
-			else res.render('pok/pok', {layout: false, pok_name: 'POK', admin: req.session.jenis, username: req.session.username, tahun_anggaran: req.session.tahun_anggaran});
-	})
+	getLoggedUser( redisClient, req.cookies.uid, ( loggedUser ) => {
+		Setting.findOne({'thang': loggedUser.tahun_anggaran || new Date().getFullYear(), type:'pok'}, function(err, pok_setting){
+			if(pok_setting) res.render('pok/pok', {layout: false, pok_name: pok_setting.toObject().name, admin: loggedUser.jenis, username: loggedUser.username, tahun_anggaran: loggedUser.tahun_anggaran});
+				else res.render('pok/pok', {layout: false, pok_name: 'POK', admin: loggedUser.jenis, username: loggedUser.username, tahun_anggaran: loggedUser.tahun_anggaran});
+		})
+	} )
 })
 
 pok.get('/refine', function(req, res){
@@ -3349,823 +3360,829 @@ pok.get('/refine', function(req, res){
 
 //satuan pok
 pok.get('/satuan_pok', function(req, res){
-	DetailBelanja.find({'thang': req.session.tahun_anggaran || new Date().getFullYear()}).distinct('satkeg', function(error, satuans) {
-		res.send(satuans);
+	getLoggedUser( redisClient, req.cookies.uid, ( loggedUser ) => {
+		DetailBelanja.find({'thang': loggedUser.tahun_anggaran || new Date().getFullYear()}).distinct('satkeg', function(error, satuans) {
+			res.send(satuans);
+		})
 	})
 })
 
 //unggah pok file
 pok.post('/unggah_pok', function(req, res){
-	var form = new formidable.IncomingForm();
-	var pok_name, file_path, ext, thang;
+	getLoggedUser( redisClient, req.cookies.uid, ( loggedUser ) => {
+		var form = new formidable.IncomingForm();
+		var pok_name, file_path, ext, thang;
 
-	async.waterfall([
-			function(callback){
-				form.parse(req, function(err, fields, file){
-					if(err){
-						errorHandler(req.session.user_id, 'Form parse Error. Mohon hubungi admin.');
-						res.send('ok');
-						return;
-					}
-					pok_name = fields.pok_name;
-					thang = fields.thang;
-					callback(null, 'File parsed')
-				});
+		async.waterfall([
+				function(callback){
+					form.parse(req, function(err, fields, file){
+						if(err){
+							errorHandler(req.cookies.uid, 'Form parse Error. Mohon hubungi admin.');
+							res.send('ok');
+							return;
+						}
+						pok_name = fields.pok_name;
+						thang = fields.thang;
+						callback(null, 'File parsed')
+					});
 
-				form.on('fileBegin', function (name, file){
-					file.path = __dirname+'/../uploaded/pok/'+file.name;
-					file_path = file.path;
-					console.log(ext,file.path)
-					ext = file.path.match(/[^.]\w*$/i)[0];
-				})
-			} 
-		], function(err, final){
-			console.log(err,err)
-			if(capitalize(ext) == 'XLSX' || capitalize(ext) == 'XLS'){
-				var pok = new XlsxPOK(file_path, pok_name || 'POK', req.session.username || 'admin', thang || req.session.tahun_anggaran || new Date().getFullYear(), req.session.user_id || 'dummy user');
-			} else if(ext.match(/^s/)) {
-				var pok = new POK(file_path, pok_name || 'POK', req.session.username || 'admin', req.session.user_id || 'ahsbdjasdbasjd');
-			} else {
-				sendNotification(req.session.user_id, 'Format file tidak didukung.')
+					form.on('fileBegin', function (name, file){
+						file.path = __dirname+'/../uploaded/pok/'+file.name;
+						file_path = file.path;
+						console.log(ext,file.path)
+						ext = file.path.match(/[^.]\w*$/i)[0];
+					})
+				} 
+			], function(err, final){
+				console.log(err,err)
+				if(capitalize(ext) == 'XLSX' || capitalize(ext) == 'XLS'){
+					var pok = new XlsxPOK(file_path, pok_name || 'POK', loggedUser.username || 'admin', thang || loggedUser.tahun_anggaran || new Date().getFullYear(), req.cookies.uid || 'dummy user');
+				} else if(ext.match(/^s/)) {
+					var pok = new POK(file_path, pok_name || 'POK', loggedUser.username || 'admin', req.cookies.uid || 'ahsbdjasdbasjd');
+				} else {
+					sendNotification(req.cookies.uid, 'Format file tidak didukung.')
+				}
 			}
-		}
-	)
-	res.send('ok');
+		)
+		res.send('ok');
+	})
 });
 
 //unggah pok file
 pok.get('/download/:type/:month', function(req, res){
-	var y = req.session.tahun_anggaran || new Date().getFullYear();
-	var m = req.params.month;
-	var thang = req.session.tahun_anggaran || new Date().getFullYear();
-	var month = ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 
-		'OKTOBER', 'NOVEMBER', 'DESEMBER']	 
-	// Create a new instance of a Workbook class 
-	var pok_wb = new xl.Workbook({
-		defaultFont: {
-	        size: 11
-	    }
-	});
-	 
-	// Add Worksheets to the workbook 
-	var ws = pok_wb.addWorksheet(month[m], {
-		'pageSetup': {
-			'orientation': 'landscape',
-			'paperHeight': '15in', // Value must a positive Float immediately followed by unit of measure from list mm, cm, in, pt, pc, pi. i.e. '10.5cm'
-	        'paperSize': 'LEGAL_PAPER', // see lib/types/paperSize.js for all types and descriptions of types. setting paperSize overrides paperHeight and paperWidth settings
-	        'paperWidth': '8.5in'
-		},
-		'margins': {
-	        'bottom': 0.1,
-	        'footer': 0.1,
-	        'header': 0.1,
-	        'left': 0.1,
-	        'right': 0.1,
-	        'top': 0.1
-	    }
-	});
-	 
-	// Create a reusable style 
-	var header = pok_wb.createStyle({
-	    font: {
-	    	bold: true,
-	        size: 11
-	    }, 
-	    alignment: {
-	        wrapText: true,
-	        horizontal: 'center',
-	        vertical: 'center'
-	    },
-	    border: {
-	    	left: {
-	    		style: 'thin'
-	    	},
-	    	right: {
-	    		style: 'thin'
-	    	},
-	    	top: {
-	    		style: 'thin'
-	    	},
-	    	bottom: {
-	    		style: 'thin'
-	    	},
-	    }
-	});
-	//program
-	var prog_u = pok_wb.createStyle({
-	    font: {
-	    	bold: true,
-	        size: 11
-	    },
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var prog_k = pok_wb.createStyle({
-	    font: {
-	    	bold: true,
-	        size: 11
-	    },
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	//kegiatan
-	var keg_k = pok_wb.createStyle({
-	    font: {
-	    	bold: true,
-	    },
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var keg_u = pok_wb.createStyle({
-	    font: {
-	    	bold: true,
-	    },
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	//output
-	var out_k = pok_wb.createStyle({
-	    font: {
-	    	bold: true,
-	    	size: 11,
-	    },
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var out_u = pok_wb.createStyle({
-	    font: {
-	    	bold: true,
-	    },
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	//komponen
-	var komp_k = pok_wb.createStyle({
-	    font: {
-	    	bold: true,
-	    }, 
-	    alignment: {
-	        horizontal: 'center'
-	    },
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	//umum
-	var bold11 = pok_wb.createStyle({
-	    font: {
-	    	bold: true,
-	        size: 11
-	    },
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var normal11 = pok_wb.createStyle({
-	    font: {
-	        size: 11
-	    },
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var bold11kanan = pok_wb.createStyle({
-	    font: {
-	    	bold: true,
-	        size: 11
-	    }, 
-	    alignment: {
-	        horizontal: 'right'
-	    },
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var red_font = pok_wb.createStyle({
-	    font: {
-	    	bold: true,
-        	color: '#FF0000',
-	        size: 11
-	    },
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var goldy_font = pok_wb.createStyle({
-	    font: {
-	    	bold: true,
-        	color: '#72760D',
-	        size: 11
-	    },
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var blue_font = pok_wb.createStyle({
-	    font: {
-	    	bold: true,
-        	color: '#7E00FF',
-	        size: 11
-	    },
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var violet_font = pok_wb.createStyle({
-	    font: {
-	    	bold: true,
-        	color: '#BD30B8',
-	        size: 11
-	    },
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var uang = pok_wb.createStyle({
-	    font: {
-	        size: 11
-	    }, 
-	    alignment: {
-	        horizontal: 'right'
-	    },
-    	numberFormat: '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)',
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var uang2 = pok_wb.createStyle({
-	    font: {
-	        size: 11
-	    }, 
-	    alignment: {
-	        horizontal: 'right'
-	    },
-    	numberFormat: '#,##0',
-    	border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var b = pok_wb.createStyle({
-	    border: {
-	    	left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var end_border = pok_wb.createStyle({
-	    border: {
-	    	bottom: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var b_e = pok_wb.createStyle({
-		fill: {
-			type: 'pattern',
-			patternType: 'solid',
-			fgColor: '#FFFC00'
-		},
-	    border: {
-	    	top: {
-	            style: 'thin'
-	        },
-	    	bottom: {
-	            style: 'thin'
-	        },
-	        left: {
-	            style: 'thin'
-	        },
-	        right: {
-	            style: 'thin'
-	        }
-	    }
-	});
-	var v_bg = pok_wb.createStyle({
-		fill: {
-			type: 'pattern',
-			patternType: 'solid',
-			fgColor: '#ECD2EE'
-		}
-	});
-	var v_bg2 = pok_wb.createStyle({
-		font: {
-			color : '#FFFFFF'
-		},
-		fill: {
-			type: 'pattern',
-			patternType: 'solid',
-			fgColor: '#800080'
-		}
-	});
-	var y_bg = pok_wb.createStyle({
-		fill: {
-			type: 'pattern',
-			patternType: 'solid',
-			fgColor: '#FFFC00'
-		}
-	});
+	getLoggedUser( redisClient, req.cookies.uid, ( loggedUser ) => {
+		var y = loggedUser.tahun_anggaran || new Date().getFullYear();
+		var m = req.params.month;
+		var thang = loggedUser.tahun_anggaran || new Date().getFullYear();
+		var month = ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 
+			'OKTOBER', 'NOVEMBER', 'DESEMBER']	 
+		// Create a new instance of a Workbook class 
+		var pok_wb = new xl.Workbook({
+			defaultFont: {
+				size: 11
+			}
+		});
+		
+		// Add Worksheets to the workbook 
+		var ws = pok_wb.addWorksheet(month[m], {
+			'pageSetup': {
+				'orientation': 'landscape',
+				'paperHeight': '15in', // Value must a positive Float immediately followed by unit of measure from list mm, cm, in, pt, pc, pi. i.e. '10.5cm'
+				'paperSize': 'LEGAL_PAPER', // see lib/types/paperSize.js for all types and descriptions of types. setting paperSize overrides paperHeight and paperWidth settings
+				'paperWidth': '8.5in'
+			},
+			'margins': {
+				'bottom': 0.1,
+				'footer': 0.1,
+				'header': 0.1,
+				'left': 0.1,
+				'right': 0.1,
+				'top': 0.1
+			}
+		});
+		
+		// Create a reusable style 
+		var header = pok_wb.createStyle({
+			font: {
+				bold: true,
+				size: 11
+			}, 
+			alignment: {
+				wrapText: true,
+				horizontal: 'center',
+				vertical: 'center'
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				},
+				top: {
+					style: 'thin'
+				},
+				bottom: {
+					style: 'thin'
+				},
+			}
+		});
+		//program
+		var prog_u = pok_wb.createStyle({
+			font: {
+				bold: true,
+				size: 11
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		var prog_k = pok_wb.createStyle({
+			font: {
+				bold: true,
+				size: 11
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		//kegiatan
+		var keg_k = pok_wb.createStyle({
+			font: {
+				bold: true,
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		var keg_u = pok_wb.createStyle({
+			font: {
+				bold: true,
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		//output
+		var out_k = pok_wb.createStyle({
+			font: {
+				bold: true,
+				size: 11,
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		var out_u = pok_wb.createStyle({
+			font: {
+				bold: true,
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		//komponen
+		var komp_k = pok_wb.createStyle({
+			font: {
+				bold: true,
+			}, 
+			alignment: {
+				horizontal: 'center'
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		//umum
+		var bold11 = pok_wb.createStyle({
+			font: {
+				bold: true,
+				size: 11
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		var normal11 = pok_wb.createStyle({
+			font: {
+				size: 11
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		var bold11kanan = pok_wb.createStyle({
+			font: {
+				bold: true,
+				size: 11
+			}, 
+			alignment: {
+				horizontal: 'right'
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		var red_font = pok_wb.createStyle({
+			font: {
+				bold: true,
+				color: '#FF0000',
+				size: 11
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		var goldy_font = pok_wb.createStyle({
+			font: {
+				bold: true,
+				color: '#72760D',
+				size: 11
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		var blue_font = pok_wb.createStyle({
+			font: {
+				bold: true,
+				color: '#7E00FF',
+				size: 11
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		var violet_font = pok_wb.createStyle({
+			font: {
+				bold: true,
+				color: '#BD30B8',
+				size: 11
+			},
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		var uang = pok_wb.createStyle({
+			font: {
+				size: 11
+			}, 
+			alignment: {
+				horizontal: 'right'
+			},
+			numberFormat: '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)',
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		var uang2 = pok_wb.createStyle({
+			font: {
+				size: 11
+			}, 
+			alignment: {
+				horizontal: 'right'
+			},
+			numberFormat: '#,##0',
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		var b = pok_wb.createStyle({
+			border: {
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		var end_border = pok_wb.createStyle({
+			border: {
+				bottom: {
+					style: 'thin'
+				}
+			}
+		});
+		var b_e = pok_wb.createStyle({
+			fill: {
+				type: 'pattern',
+				patternType: 'solid',
+				fgColor: '#FFFC00'
+			},
+			border: {
+				top: {
+					style: 'thin'
+				},
+				bottom: {
+					style: 'thin'
+				},
+				left: {
+					style: 'thin'
+				},
+				right: {
+					style: 'thin'
+				}
+			}
+		});
+		var v_bg = pok_wb.createStyle({
+			fill: {
+				type: 'pattern',
+				patternType: 'solid',
+				fgColor: '#ECD2EE'
+			}
+		});
+		var v_bg2 = pok_wb.createStyle({
+			font: {
+				color : '#FFFFFF'
+			},
+			fill: {
+				type: 'pattern',
+				patternType: 'solid',
+				fgColor: '#800080'
+			}
+		});
+		var y_bg = pok_wb.createStyle({
+			fill: {
+				type: 'pattern',
+				patternType: 'solid',
+				fgColor: '#FFFC00'
+			}
+		});
 
-	var row_pos = 6;
-	var arr_skomp = {};
+		var row_pos = 6;
+		var arr_skomp = {};
 
-	function writeRow(ws, item, type){
-		if(type == 'detail'){
-			//Detail
-			ws.cell(row_pos,1).style(b);
-			ws.cell(row_pos,2).string('- '+item.nmitem.replace(/^\s+|\-/g,'')).style(normal11);
-			ws.cell(row_pos,3).number(+item.volkeg).style(uang);
-			ws.cell(row_pos,4).string(item.satkeg).style(normal11);
-			ws.cell(row_pos,5).number(item.hargasat).style(uang);
-			ws.cell(row_pos,6).number(item.jumlah).style(uang);
-			ws.cell(row_pos,7).number(item.pengeluaran || 0).style(uang).style(v_bg);
-			ws.cell(row_pos,8).number(item.rbl || 0).style(uang);
-			ws.cell(row_pos,9).formula('G'+row_pos+'+H'+row_pos).style(uang);
-			ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang);
-			if(item.jumlah - (item.pengeluaran + item.rbl) >= 0) ws.cell(row_pos,11).formula('F'+row_pos+'-I'+row_pos).style(uang2);
-				else ws.cell(row_pos,11).formula('F'+row_pos+'-I'+row_pos).style(uang2).style(y_bg);
-			
-		} else if(type == 'akun'){
-			ws.cell(row_pos,1).string(item.kdakun).style(bold11kanan);
-			ws.cell(row_pos,2).string(item.uraian || '(Blm diedit)').style(bold11);
-			ws.cell(row_pos,3).number(0).style(uang).style(bold11);
-			ws.cell(row_pos,4).style(b);
-			ws.cell(row_pos,5).number(0).style(uang).style(bold11);
-			ws.cell(row_pos,6).formula('SUM(F'+(row_pos+1)+':F'+(row_pos+item.length)+')').style(uang).style(bold11);
-			ws.cell(row_pos,7).formula('SUM(G'+(row_pos+1)+':G'+(row_pos+item.length)+')').style(uang).style(bold11).style(v_bg);
-			ws.cell(row_pos,8).formula('SUM(H'+(row_pos+1)+':H'+(row_pos+item.length)+')').style(uang).style(bold11);
-			ws.cell(row_pos,9).formula('SUM(I'+(row_pos+1)+':I'+(row_pos+item.length)+')').style(uang).style(bold11);
-			ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang);
-			ws.cell(row_pos,11).formula('SUM(K'+(row_pos+1)+':K'+(row_pos+item.length)+')').style(uang2);
-		} else if(type == 'skomponen'){
-			ws.cell(row_pos,1).string(item.kdskmpnen).style(komp_k).style(violet_font);
-			ws.cell(row_pos,2).string(item.urskmpnen || '(Blm diedit)').style(out_u).style(violet_font);
-			ws.cell(row_pos,3).number(0).style(uang).style(violet_font);
-			ws.cell(row_pos,4).style(b);
-			ws.cell(row_pos,5).number(0).style(uang).style(violet_font);
-			ws.cell(row_pos,6).formula('SUM(F'+(row_pos+1)+':F'+(row_pos+2)+')').style(uang).style(violet_font);
-			ws.cell(row_pos,7).formula('SUM(G'+(row_pos+1)+':G'+(row_pos+2)+')').style(uang).style(violet_font).style(v_bg);
-			ws.cell(row_pos,8).formula('SUM(H'+(row_pos+1)+':H'+(row_pos+2)+')').style(uang).style(violet_font);
-			ws.cell(row_pos,9).formula('SUM(I'+(row_pos+1)+':I'+(row_pos+2)+')').style(uang).style(violet_font);
-			ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang).style(violet_font);
-			ws.cell(row_pos,11).formula('SUM(K'+(row_pos+1)+':K'+(row_pos+2)+')').style(uang2).style(violet_font);
-		} else if(type == 'komponen'){
-			ws.cell(row_pos,1).string(item.kdkmpnen).style(komp_k).style(blue_font);
-			ws.cell(row_pos,2).string(item.urkmpnen || '(Blm diedit)').style(out_u).style(blue_font);
-			ws.cell(row_pos,3).number(0).style(uang).style(blue_font);
-			ws.cell(row_pos,4).style(b);
-			ws.cell(row_pos,5).number(0).style(uang).style(blue_font);
-			ws.cell(row_pos,6).formula('SUM(F'+(row_pos+1)+':F'+(row_pos+2)+')').style(uang).style(blue_font);
-			ws.cell(row_pos,7).formula('SUM(G'+(row_pos+1)+':G'+(row_pos+2)+')').style(uang).style(blue_font).style(v_bg);
-			ws.cell(row_pos,8).formula('SUM(H'+(row_pos+1)+':H'+(row_pos+2)+')').style(uang).style(blue_font);
-			ws.cell(row_pos,9).formula('SUM(I'+(row_pos+1)+':I'+(row_pos+2)+')').style(uang).style(blue_font);
-			ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang).style(blue_font);
-			ws.cell(row_pos,11).formula('SUM(K'+(row_pos+1)+':K'+(row_pos+2)+')').style(uang2).style(blue_font);
-		} else if(type == 'output'){
-			ws.cell(row_pos,1).string(item.kdgiat+'.'+item.kdoutput).style(out_k).style(red_font);
-			ws.cell(row_pos,2).string(item.uraian || '(Blm diedit)').style(out_u).style(red_font);
-			ws.cell(row_pos,3).number(item.vol).style(uang).style(red_font);
-			ws.cell(row_pos,4).string('').style(out_u).style(red_font);
-			ws.cell(row_pos,5).number(0).style(uang).style(red_font);
-			ws.cell(row_pos,6).formula('SUM(F'+(row_pos+1)+':F'+(row_pos+2)+')').style(uang).style(red_font);
-			ws.cell(row_pos,7).formula('SUM(G'+(row_pos+1)+':G'+(row_pos+2)+')').style(uang).style(red_font).style(v_bg);
-			ws.cell(row_pos,8).formula('SUM(H'+(row_pos+1)+':H'+(row_pos+2)+')').style(uang).style(red_font);
-			ws.cell(row_pos,9).formula('SUM(I'+(row_pos+1)+':I'+(row_pos+2)+')').style(uang).style(red_font);
-			ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang).style(red_font);
-			ws.cell(row_pos,11).formula('SUM(K'+(row_pos+1)+':K'+(row_pos+2)+')').style(uang2).style(red_font);
-		} else if(type == 'kegiatan'){
-			ws.cell(row_pos,1).string(item.kdgiat).style(keg_k).style(goldy_font);
-			ws.cell(row_pos,2).string(item.uraian || '(Blm diedit)').style(keg_u).style(goldy_font);;
-			ws.cell(row_pos,3).number(0).style(uang).style(goldy_font);
-			ws.cell(row_pos,4).style(b);
-			ws.cell(row_pos,5).number(0).style(uang).style(goldy_font);
-			ws.cell(row_pos,6).formula('SUM(F'+(row_pos+1)+':F'+(row_pos+2)+')').style(uang).style(goldy_font);
-			ws.cell(row_pos,7).formula('SUM(G'+(row_pos+1)+':G'+(row_pos+2)+')').style(uang).style(goldy_font).style(v_bg);
-			ws.cell(row_pos,8).formula('SUM(H'+(row_pos+1)+':H'+(row_pos+2)+')').style(uang).style(goldy_font);
-			ws.cell(row_pos,9).formula('SUM(I'+(row_pos+1)+':I'+(row_pos+2)+')').style(uang).style(goldy_font);
-			ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang).style(goldy_font);
-			ws.cell(row_pos,11).formula('SUM(K'+(row_pos+1)+':K'+(row_pos+2)+')').style(uang2).style(goldy_font);
-		} else if(type == 'program'){
-			ws.cell(row_pos,1).string('054.01.'+item.kdprogram).style(prog_k).style(b).style(v_bg2);
-			ws.cell(row_pos,2).string(item.uraian || '(Blm diedit)').style(prog_u).style(b).style(v_bg2);
-			ws.cell(row_pos,3).number(0).style(uang).style(bold11).style(b).style(v_bg2);
-			ws.cell(row_pos,4).style(b).style(v_bg2);
-			ws.cell(row_pos,5).style(b).style(v_bg2);
-			ws.cell(row_pos,6).formula('SUM(F'+(row_pos+1)+':F'+(row_pos+2)+')').style(uang).style(bold11).style(b).style(v_bg2);
-			ws.cell(row_pos,7).formula('SUM(G'+(row_pos+1)+':G'+(row_pos+2)+')').style(uang).style(bold11).style(b).style(v_bg).style(v_bg2);
-			ws.cell(row_pos,8).formula('SUM(H'+(row_pos+1)+':H'+(row_pos+2)+')').style(uang).style(bold11).style(b).style(v_bg2);
-			ws.cell(row_pos,9).formula('SUM(I'+(row_pos+1)+':I'+(row_pos+2)+')').style(uang).style(bold11).style(b).style(v_bg2);
-			ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang).style(bold11).style(b).style(v_bg2);
-			ws.cell(row_pos,11).formula('SUM(K'+(row_pos+1)+':K'+(row_pos+2)+')').style(uang2).style(bold11).style(b).style(v_bg2);
-		}
-		return row_pos++;
-	}
-	//width
-	ws.column(1).setWidth(9);
-	ws.column(2).setWidth(50);
-	ws.column(3).setWidth(10);
-	ws.column(4).setWidth(7);
-	ws.column(5).setWidth(14);
-	ws.column(6).setWidth(15);
-	ws.column(7).setWidth(15);
-	ws.column(8).setWidth(15);
-	ws.column(9).setWidth(16);
-	ws.column(10).setWidth(8);
-	ws.column(11).setWidth(15);
-
-	ws.column(2).freeze(2);
-
-	//header
-	ws.cell(4,1).string('kode').style(header);
-	ws.cell(4,2).string('uraian').style(header);
-	ws.cell(4,3).string('vol').style(header);
-	ws.cell(4,4).string('sat').style(header);
-	ws.cell(4,5).string('hargasat').style(header);
-	ws.cell(4,6).string('jumlah').style(header);
-	ws.cell(4,7).string('PENGELUARAN').style(header);
-	ws.cell(4,8, 5, 8, true).string('REALISASI BULAN LALU').style(header);
-	ws.cell(4, 9, 4, 10, true).string('REALISASI S/D BULAN INI').style(header);
-	ws.cell(5,9).string('(Rp)').style(header);
-	ws.cell(5,10).string('%').style(header);
-	ws.cell(4,11, 5, 11, true).string('SISA DANA (RP)').style(header);
-
-	ws.cell(5,1).style(b);
-	ws.cell(5,2).style(b);
-	ws.cell(5,3).style(b);
-	ws.cell(5,4).style(b);
-	ws.cell(5,5).style(b);
-	ws.cell(5,6).style(b);
-	ws.cell(5,7).style(b);
-
-	var d = new Date();
-	var date = d.getHours()+':'+d.getMinutes()+':'+d.getSeconds()+', '+d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
-	ws.cell(2,3, 2, 7, true).string('REALISASI '+month[m]+' '+y).style({font: {bold: true, size: 14}, alignment: {horizontal: 'center'}});
-	ws.cell(3,8, 3, 11, true).string('Generated by simamov at '+date).style({alignment:{horizontal: 'right'}});
-	var lower_ts = Math.round(new Date(y, m, 1).getTime()/1000);
-	var upper_ts = Math.round(new Date(y, +m + 1, 0).getTime()/1000) + 86399;
-
-	// SubKomponen.find({active: true}).sort('kdskmpnen').exec(function(err, skomps){
-	// 	var tasks2 = [];
-
-	// 	_.each(skomps, function(skomp, index, list){
-	// 		tasks2.push(function(cb2){
-
+		function writeRow(ws, item, type){
+			if(type == 'detail'){
+				//Detail
+				ws.cell(row_pos,1).style(b);
+				ws.cell(row_pos,2).string('- '+item.nmitem.replace(/^\s+|\-/g,'')).style(normal11);
+				ws.cell(row_pos,3).number(+item.volkeg).style(uang);
+				ws.cell(row_pos,4).string(item.satkeg).style(normal11);
+				ws.cell(row_pos,5).number(item.hargasat).style(uang);
+				ws.cell(row_pos,6).number(item.jumlah).style(uang);
+				ws.cell(row_pos,7).number(item.pengeluaran || 0).style(uang).style(v_bg);
+				ws.cell(row_pos,8).number(item.rbl || 0).style(uang);
+				ws.cell(row_pos,9).formula('G'+row_pos+'+H'+row_pos).style(uang);
+				ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang);
+				if(item.jumlah - (item.pengeluaran + item.rbl) >= 0) ws.cell(row_pos,11).formula('F'+row_pos+'-I'+row_pos).style(uang2);
+					else ws.cell(row_pos,11).formula('F'+row_pos+'-I'+row_pos).style(uang2).style(y_bg);
 				
+			} else if(type == 'akun'){
+				ws.cell(row_pos,1).string(item.kdakun).style(bold11kanan);
+				ws.cell(row_pos,2).string(item.uraian || '(Blm diedit)').style(bold11);
+				ws.cell(row_pos,3).number(0).style(uang).style(bold11);
+				ws.cell(row_pos,4).style(b);
+				ws.cell(row_pos,5).number(0).style(uang).style(bold11);
+				ws.cell(row_pos,6).formula('SUM(F'+(row_pos+1)+':F'+(row_pos+item.length)+')').style(uang).style(bold11);
+				ws.cell(row_pos,7).formula('SUM(G'+(row_pos+1)+':G'+(row_pos+item.length)+')').style(uang).style(bold11).style(v_bg);
+				ws.cell(row_pos,8).formula('SUM(H'+(row_pos+1)+':H'+(row_pos+item.length)+')').style(uang).style(bold11);
+				ws.cell(row_pos,9).formula('SUM(I'+(row_pos+1)+':I'+(row_pos+item.length)+')').style(uang).style(bold11);
+				ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang);
+				ws.cell(row_pos,11).formula('SUM(K'+(row_pos+1)+':K'+(row_pos+item.length)+')').style(uang2);
+			} else if(type == 'skomponen'){
+				ws.cell(row_pos,1).string(item.kdskmpnen).style(komp_k).style(violet_font);
+				ws.cell(row_pos,2).string(item.urskmpnen || '(Blm diedit)').style(out_u).style(violet_font);
+				ws.cell(row_pos,3).number(0).style(uang).style(violet_font);
+				ws.cell(row_pos,4).style(b);
+				ws.cell(row_pos,5).number(0).style(uang).style(violet_font);
+				ws.cell(row_pos,6).formula('SUM(F'+(row_pos+1)+':F'+(row_pos+2)+')').style(uang).style(violet_font);
+				ws.cell(row_pos,7).formula('SUM(G'+(row_pos+1)+':G'+(row_pos+2)+')').style(uang).style(violet_font).style(v_bg);
+				ws.cell(row_pos,8).formula('SUM(H'+(row_pos+1)+':H'+(row_pos+2)+')').style(uang).style(violet_font);
+				ws.cell(row_pos,9).formula('SUM(I'+(row_pos+1)+':I'+(row_pos+2)+')').style(uang).style(violet_font);
+				ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang).style(violet_font);
+				ws.cell(row_pos,11).formula('SUM(K'+(row_pos+1)+':K'+(row_pos+2)+')').style(uang2).style(violet_font);
+			} else if(type == 'komponen'){
+				ws.cell(row_pos,1).string(item.kdkmpnen).style(komp_k).style(blue_font);
+				ws.cell(row_pos,2).string(item.urkmpnen || '(Blm diedit)').style(out_u).style(blue_font);
+				ws.cell(row_pos,3).number(0).style(uang).style(blue_font);
+				ws.cell(row_pos,4).style(b);
+				ws.cell(row_pos,5).number(0).style(uang).style(blue_font);
+				ws.cell(row_pos,6).formula('SUM(F'+(row_pos+1)+':F'+(row_pos+2)+')').style(uang).style(blue_font);
+				ws.cell(row_pos,7).formula('SUM(G'+(row_pos+1)+':G'+(row_pos+2)+')').style(uang).style(blue_font).style(v_bg);
+				ws.cell(row_pos,8).formula('SUM(H'+(row_pos+1)+':H'+(row_pos+2)+')').style(uang).style(blue_font);
+				ws.cell(row_pos,9).formula('SUM(I'+(row_pos+1)+':I'+(row_pos+2)+')').style(uang).style(blue_font);
+				ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang).style(blue_font);
+				ws.cell(row_pos,11).formula('SUM(K'+(row_pos+1)+':K'+(row_pos+2)+')').style(uang2).style(blue_font);
+			} else if(type == 'output'){
+				ws.cell(row_pos,1).string(item.kdgiat+'.'+item.kdoutput).style(out_k).style(red_font);
+				ws.cell(row_pos,2).string(item.uraian || '(Blm diedit)').style(out_u).style(red_font);
+				ws.cell(row_pos,3).number(item.vol).style(uang).style(red_font);
+				ws.cell(row_pos,4).string('').style(out_u).style(red_font);
+				ws.cell(row_pos,5).number(0).style(uang).style(red_font);
+				ws.cell(row_pos,6).formula('SUM(F'+(row_pos+1)+':F'+(row_pos+2)+')').style(uang).style(red_font);
+				ws.cell(row_pos,7).formula('SUM(G'+(row_pos+1)+':G'+(row_pos+2)+')').style(uang).style(red_font).style(v_bg);
+				ws.cell(row_pos,8).formula('SUM(H'+(row_pos+1)+':H'+(row_pos+2)+')').style(uang).style(red_font);
+				ws.cell(row_pos,9).formula('SUM(I'+(row_pos+1)+':I'+(row_pos+2)+')').style(uang).style(red_font);
+				ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang).style(red_font);
+				ws.cell(row_pos,11).formula('SUM(K'+(row_pos+1)+':K'+(row_pos+2)+')').style(uang2).style(red_font);
+			} else if(type == 'kegiatan'){
+				ws.cell(row_pos,1).string(item.kdgiat).style(keg_k).style(goldy_font);
+				ws.cell(row_pos,2).string(item.uraian || '(Blm diedit)').style(keg_u).style(goldy_font);;
+				ws.cell(row_pos,3).number(0).style(uang).style(goldy_font);
+				ws.cell(row_pos,4).style(b);
+				ws.cell(row_pos,5).number(0).style(uang).style(goldy_font);
+				ws.cell(row_pos,6).formula('SUM(F'+(row_pos+1)+':F'+(row_pos+2)+')').style(uang).style(goldy_font);
+				ws.cell(row_pos,7).formula('SUM(G'+(row_pos+1)+':G'+(row_pos+2)+')').style(uang).style(goldy_font).style(v_bg);
+				ws.cell(row_pos,8).formula('SUM(H'+(row_pos+1)+':H'+(row_pos+2)+')').style(uang).style(goldy_font);
+				ws.cell(row_pos,9).formula('SUM(I'+(row_pos+1)+':I'+(row_pos+2)+')').style(uang).style(goldy_font);
+				ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang).style(goldy_font);
+				ws.cell(row_pos,11).formula('SUM(K'+(row_pos+1)+':K'+(row_pos+2)+')').style(uang2).style(goldy_font);
+			} else if(type == 'program'){
+				ws.cell(row_pos,1).string('054.01.'+item.kdprogram).style(prog_k).style(b).style(v_bg2);
+				ws.cell(row_pos,2).string(item.uraian || '(Blm diedit)').style(prog_u).style(b).style(v_bg2);
+				ws.cell(row_pos,3).number(0).style(uang).style(bold11).style(b).style(v_bg2);
+				ws.cell(row_pos,4).style(b).style(v_bg2);
+				ws.cell(row_pos,5).style(b).style(v_bg2);
+				ws.cell(row_pos,6).formula('SUM(F'+(row_pos+1)+':F'+(row_pos+2)+')').style(uang).style(bold11).style(b).style(v_bg2);
+				ws.cell(row_pos,7).formula('SUM(G'+(row_pos+1)+':G'+(row_pos+2)+')').style(uang).style(bold11).style(b).style(v_bg).style(v_bg2);
+				ws.cell(row_pos,8).formula('SUM(H'+(row_pos+1)+':H'+(row_pos+2)+')').style(uang).style(bold11).style(b).style(v_bg2);
+				ws.cell(row_pos,9).formula('SUM(I'+(row_pos+1)+':I'+(row_pos+2)+')').style(uang).style(bold11).style(b).style(v_bg2);
+				ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang).style(bold11).style(b).style(v_bg2);
+				ws.cell(row_pos,11).formula('SUM(K'+(row_pos+1)+':K'+(row_pos+2)+')').style(uang2).style(bold11).style(b).style(v_bg2);
+			}
+			return row_pos++;
+		}
+		//width
+		ws.column(1).setWidth(9);
+		ws.column(2).setWidth(50);
+		ws.column(3).setWidth(10);
+		ws.column(4).setWidth(7);
+		ws.column(5).setWidth(14);
+		ws.column(6).setWidth(15);
+		ws.column(7).setWidth(15);
+		ws.column(8).setWidth(15);
+		ws.column(9).setWidth(16);
+		ws.column(10).setWidth(8);
+		ws.column(11).setWidth(15);
 
-	// 		})
-	// 	})
+		ws.column(2).freeze(2);
 
-	// 	async.series(tasks2, function(err, finish){
-	// 		pok_wb.write('POK.xlsx', res);
-	// 	})
-	// })
+		//header
+		ws.cell(4,1).string('kode').style(header);
+		ws.cell(4,2).string('uraian').style(header);
+		ws.cell(4,3).string('vol').style(header);
+		ws.cell(4,4).string('sat').style(header);
+		ws.cell(4,5).string('hargasat').style(header);
+		ws.cell(4,6).string('jumlah').style(header);
+		ws.cell(4,7).string('PENGELUARAN').style(header);
+		ws.cell(4,8, 5, 8, true).string('REALISASI BULAN LALU').style(header);
+		ws.cell(4, 9, 4, 10, true).string('REALISASI S/D BULAN INI').style(header);
+		ws.cell(5,9).string('(Rp)').style(header);
+		ws.cell(5,10).string('%').style(header);
+		ws.cell(4,11, 5, 11, true).string('SISA DANA (RP)').style(header);
 
-	var index_prog = []
+		ws.cell(5,1).style(b);
+		ws.cell(5,2).style(b);
+		ws.cell(5,3).style(b);
+		ws.cell(5,4).style(b);
+		ws.cell(5,5).style(b);
+		ws.cell(5,6).style(b);
+		ws.cell(5,7).style(b);
 
-	Program.find({'thang': thang, active: true}).sort('kdprogram').exec(function(err, progs){
-		var tasks6 = [];
+		var d = new Date();
+		var date = d.getHours()+':'+d.getMinutes()+':'+d.getSeconds()+', '+d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
+		ws.cell(2,3, 2, 7, true).string('REALISASI '+month[m]+' '+y).style({font: {bold: true, size: 14}, alignment: {horizontal: 'center'}});
+		ws.cell(3,8, 3, 11, true).string('Generated by simamov at '+date).style({alignment:{horizontal: 'right'}});
+		var lower_ts = Math.round(new Date(y, m, 1).getTime()/1000);
+		var upper_ts = Math.round(new Date(y, +m + 1, 0).getTime()/1000) + 86399;
 
-		_.each(progs, function(prog, index, list){
-			tasks6.push(function(cb6){
+		// SubKomponen.find({active: true}).sort('kdskmpnen').exec(function(err, skomps){
+		// 	var tasks2 = [];
 
-				Kegiatan.find({'thang': thang, active: true, kdprogram: prog.kdprogram}).sort('kdgiat').exec(function(err, kegs){
-					var tasks5 = [];
+		// 	_.each(skomps, function(skomp, index, list){
+		// 		tasks2.push(function(cb2){
 
-					var index_keg = []
-					var prog_i = writeRow(ws, prog, 'program')
-					index_prog.push(prog_i)
+					
 
-					_.each(kegs, function(keg, index, list){
-						tasks5.push(function(cb5){
+		// 		})
+		// 	})
 
-							Output.find({'thang': thang, active: true, kdgiat: keg.kdgiat, kdprogram: keg.kdprogram}).sort('kdoutput').exec(function(err, outputs){
-								var tasks4 = [];
+		// 	async.series(tasks2, function(err, finish){
+		// 		pok_wb.write('POK.xlsx', res);
+		// 	})
+		// })
 
-								var index_outp = []
-								var keg_i = writeRow(ws, keg, 'kegiatan');
-								index_keg.push(keg_i)
+		var index_prog = []
 
-								_.each(outputs, function(outp, index, list){
-									tasks4.push(function(cb4){
+		Program.find({'thang': thang, active: true}).sort('kdprogram').exec(function(err, progs){
+			var tasks6 = [];
 
-										Komponen.find({'thang': thang, active: true, kdoutput: outp.kdoutput,
-											kdgiat: outp.kdgiat, kdprogram: outp.kdprogram}).sort('kdkmpnen').exec(function(err, komps){
-											var tasks3 = [];
+			_.each(progs, function(prog, index, list){
+				tasks6.push(function(cb6){
 
-											var index_komp = [];
-											var outp_i = writeRow(ws, outp, 'output');
-											index_outp.push(outp_i)
+					Kegiatan.find({'thang': thang, active: true, kdprogram: prog.kdprogram}).sort('kdgiat').exec(function(err, kegs){
+						var tasks5 = [];
 
-											_.each(komps, function(komp, index, list){
-												tasks3.push(function(cb3){
+						var index_keg = []
+						var prog_i = writeRow(ws, prog, 'program')
+						index_prog.push(prog_i)
 
-													SubKomponen.find({'thang': thang, active: true, kdkmpnen: komp.kdkmpnen, kdsoutput: komp.kdsoutput, kdoutput: komp.kdoutput,
-														kdgiat: komp.kdgiat, kdprogram: komp.kdprogram}).sort('kdskmpnen').exec(function(err, skomps){
-														var tasks2 = [];
+						_.each(kegs, function(keg, index, list){
+							tasks5.push(function(cb5){
 
-														var index_skomp = [];
-														var komp_i = writeRow(ws, komp, 'komponen');
-														index_komp.push(komp_i)
+								Output.find({'thang': thang, active: true, kdgiat: keg.kdgiat, kdprogram: keg.kdprogram}).sort('kdoutput').exec(function(err, outputs){
+									var tasks4 = [];
 
-														_.each(skomps, function(skomp, index, list){
-															tasks2.push(function(cb2){
+									var index_outp = []
+									var keg_i = writeRow(ws, keg, 'kegiatan');
+									index_keg.push(keg_i)
 
-																Akun.find({'thang': thang, active: true, kdskmpnen: skomp.kdskmpnen,
-																	kdkmpnen: skomp.kdkmpnen, kdsoutput: skomp.kdsoutput, kdoutput: skomp.kdoutput,
-																		kdgiat: skomp.kdgiat, kdprogram: skomp.kdprogram}).sort('kdakun').exec(function(err, akuns){
-																	var tasks1 = [];
+									_.each(outputs, function(outp, index, list){
+										tasks4.push(function(cb4){
 
-																	var index_akun = [];
-																	var skomp_i = 0;
+											Komponen.find({'thang': thang, active: true, kdoutput: outp.kdoutput,
+												kdgiat: outp.kdgiat, kdprogram: outp.kdprogram}).sort('kdkmpnen').exec(function(err, komps){
+												var tasks3 = [];
 
-																	if(skomp.urskmpnen !== 'tanpa sub komponen'){
-																		skomp_i = writeRow(ws, skomp, 'skomponen');
-																		index_skomp.push(skomp_i);
-																	}																	
+												var index_komp = [];
+												var outp_i = writeRow(ws, outp, 'output');
+												index_outp.push(outp_i)
 
-																	_.each(akuns, function(akun, index, list){
+												_.each(komps, function(komp, index, list){
+													tasks3.push(function(cb3){
 
-																		tasks1.push(function(cb1){
-																			DetailBelanja.find({'thang': thang, active: true, kdakun: akun.kdakun, kdskmpnen: akun.kdskmpnen,
-																				kdkmpnen: akun.kdkmpnen, kdsoutput: akun.kdsoutput, kdoutput: akun.kdoutput,
-																					kdgiat: skomp.kdgiat, kdprogram: akun.kdprogram}).sort('noitem').exec(function(err, details){
+														SubKomponen.find({'thang': thang, active: true, kdkmpnen: komp.kdkmpnen, kdsoutput: komp.kdsoutput, kdoutput: komp.kdoutput,
+															kdgiat: komp.kdgiat, kdprogram: komp.kdprogram}).sort('kdskmpnen').exec(function(err, skomps){
+															var tasks2 = [];
 
-																				akun.length = details.length;
-																				index_akun.push(writeRow(ws, akun, 'akun'));
-																				var tasks0 = [];
+															var index_skomp = [];
+															var komp_i = writeRow(ws, komp, 'komponen');
+															index_komp.push(komp_i)
 
-																				_.each(details, function(detail, index, list){
-																					tasks0.push(function(cb0){
-																						detail.pengeluaran = 0;
-																						detail.rbl = 0;
-																						_.each(detail.realisasi, function(realisasi, index, list){
-																							if(realisasi.tgl_timestamp >= lower_ts && realisasi.tgl_timestamp <= upper_ts){
-																								detail.pengeluaran += realisasi.jumlah;
-																							}
-																							if(realisasi.tgl_timestamp <= lower_ts) detail.rbl += realisasi.jumlah;
-																						});
-																						writeRow(ws, detail, 'detail');
-																						cb0(null, 'ok0')
+															_.each(skomps, function(skomp, index, list){
+																tasks2.push(function(cb2){
+
+																	Akun.find({'thang': thang, active: true, kdskmpnen: skomp.kdskmpnen,
+																		kdkmpnen: skomp.kdkmpnen, kdsoutput: skomp.kdsoutput, kdoutput: skomp.kdoutput,
+																			kdgiat: skomp.kdgiat, kdprogram: skomp.kdprogram}).sort('kdakun').exec(function(err, akuns){
+																		var tasks1 = [];
+
+																		var index_akun = [];
+																		var skomp_i = 0;
+
+																		if(skomp.urskmpnen !== 'tanpa sub komponen'){
+																			skomp_i = writeRow(ws, skomp, 'skomponen');
+																			index_skomp.push(skomp_i);
+																		}																	
+
+																		_.each(akuns, function(akun, index, list){
+
+																			tasks1.push(function(cb1){
+																				DetailBelanja.find({'thang': thang, active: true, kdakun: akun.kdakun, kdskmpnen: akun.kdskmpnen,
+																					kdkmpnen: akun.kdkmpnen, kdsoutput: akun.kdsoutput, kdoutput: akun.kdoutput,
+																						kdgiat: skomp.kdgiat, kdprogram: akun.kdprogram}).sort('noitem').exec(function(err, details){
+
+																					akun.length = details.length;
+																					index_akun.push(writeRow(ws, akun, 'akun'));
+																					var tasks0 = [];
+
+																					_.each(details, function(detail, index, list){
+																						tasks0.push(function(cb0){
+																							detail.pengeluaran = 0;
+																							detail.rbl = 0;
+																							_.each(detail.realisasi, function(realisasi, index, list){
+																								if(realisasi.tgl_timestamp >= lower_ts && realisasi.tgl_timestamp <= upper_ts){
+																									detail.pengeluaran += realisasi.jumlah;
+																								}
+																								if(realisasi.tgl_timestamp <= lower_ts) detail.rbl += realisasi.jumlah;
+																							});
+																							writeRow(ws, detail, 'detail');
+																							cb0(null, 'ok0')
+																						})
 																					})
-																				})
 
-																				async.series(tasks0, function(err, finish){
-																					cb1(null, 'ok1');
+																					async.series(tasks0, function(err, finish){
+																						cb1(null, 'ok1');
+																					})
 																				})
 																			})
 																		})
+
+																		async.series(tasks1, function(err, finish){
+																			var F = _.map(index_akun, function(index){ return 'F'+index; });
+																			var G = _.map(index_akun, function(index){ return 'G'+index; });
+																			var H = _.map(index_akun, function(index){ return 'H'+index; });
+																			var I = _.map(index_akun, function(index){ return 'I'+index; });
+																			var K = _.map(index_akun, function(index){ return 'K'+index; });
+																			if(skomp_i){
+																				ws.cell(skomp_i,6).formula('SUM('+F.join()+')').style(uang).style(violet_font);
+																				ws.cell(skomp_i,7).formula('SUM('+G.join()+')').style(uang).style(violet_font);
+																				ws.cell(skomp_i,8).formula('SUM('+H.join()+')').style(uang).style(violet_font);
+																				ws.cell(skomp_i,9).formula('SUM('+I.join()+')').style(uang).style(violet_font);
+																				ws.cell(skomp_i,11).formula('SUM('+K.join()+')').style(uang).style(violet_font);
+																			} else {
+																				ws.cell(komp_i,6).formula('SUM('+F.join()+')').style(uang).style(blue_font);
+																				ws.cell(komp_i,7).formula('SUM('+G.join()+')').style(uang).style(blue_font).style(v_bg);
+																				ws.cell(komp_i,8).formula('SUM('+H.join()+')').style(uang).style(blue_font);
+																				ws.cell(komp_i,9).formula('SUM('+I.join()+')').style(uang).style(blue_font);
+																				ws.cell(komp_i,11).formula('SUM('+K.join()+')').style(uang2).style(blue_font);
+																			}
+																			cb2(null, 'ok2');
+																		})
 																	})
 
-																	async.series(tasks1, function(err, finish){
-																		var F = _.map(index_akun, function(index){ return 'F'+index; });
-																		var G = _.map(index_akun, function(index){ return 'G'+index; });
-																		var H = _.map(index_akun, function(index){ return 'H'+index; });
-																		var I = _.map(index_akun, function(index){ return 'I'+index; });
-																		var K = _.map(index_akun, function(index){ return 'K'+index; });
-																		if(skomp_i){
-																			ws.cell(skomp_i,6).formula('SUM('+F.join()+')').style(uang).style(violet_font);
-																			ws.cell(skomp_i,7).formula('SUM('+G.join()+')').style(uang).style(violet_font);
-																			ws.cell(skomp_i,8).formula('SUM('+H.join()+')').style(uang).style(violet_font);
-																			ws.cell(skomp_i,9).formula('SUM('+I.join()+')').style(uang).style(violet_font);
-																			ws.cell(skomp_i,11).formula('SUM('+K.join()+')').style(uang).style(violet_font);
-																		} else {
-																			ws.cell(komp_i,6).formula('SUM('+F.join()+')').style(uang).style(blue_font);
-																			ws.cell(komp_i,7).formula('SUM('+G.join()+')').style(uang).style(blue_font).style(v_bg);
-																			ws.cell(komp_i,8).formula('SUM('+H.join()+')').style(uang).style(blue_font);
-																			ws.cell(komp_i,9).formula('SUM('+I.join()+')').style(uang).style(blue_font);
-																			ws.cell(komp_i,11).formula('SUM('+K.join()+')').style(uang2).style(blue_font);
-																		}
-																		cb2(null, 'ok2');
-																	})
 																})
+															})
 
+															async.series(tasks2, function(err, finish){
+																if(index_skomp.length){
+																	var F = _.map(index_skomp, function(index){ return 'F'+index; });
+																	var G = _.map(index_skomp, function(index){ return 'G'+index; });
+																	var H = _.map(index_skomp, function(index){ return 'H'+index; });
+																	var I = _.map(index_skomp, function(index){ return 'I'+index; });
+																	var K = _.map(index_skomp, function(index){ return 'K'+index; });
+
+																	ws.cell(komp_i,6).formula('SUM('+F.join()+')').style(uang).style(blue_font);
+																	ws.cell(komp_i,7).formula('SUM('+G.join()+')').style(uang).style(blue_font).style(v_bg);
+																	ws.cell(komp_i,8).formula('SUM('+H.join()+')').style(uang).style(blue_font);
+																	ws.cell(komp_i,9).formula('SUM('+I.join()+')').style(uang).style(blue_font);
+																	ws.cell(komp_i,11).formula('SUM('+K.join()+')').style(uang2).style(blue_font);
+																}
+																
+																cb3(null, 'ok3');
 															})
 														})
 
-														async.series(tasks2, function(err, finish){
-															if(index_skomp.length){
-																var F = _.map(index_skomp, function(index){ return 'F'+index; });
-																var G = _.map(index_skomp, function(index){ return 'G'+index; });
-																var H = _.map(index_skomp, function(index){ return 'H'+index; });
-																var I = _.map(index_skomp, function(index){ return 'I'+index; });
-																var K = _.map(index_skomp, function(index){ return 'K'+index; });
-
-																ws.cell(komp_i,6).formula('SUM('+F.join()+')').style(uang).style(blue_font);
-																ws.cell(komp_i,7).formula('SUM('+G.join()+')').style(uang).style(blue_font).style(v_bg);
-																ws.cell(komp_i,8).formula('SUM('+H.join()+')').style(uang).style(blue_font);
-																ws.cell(komp_i,9).formula('SUM('+I.join()+')').style(uang).style(blue_font);
-																ws.cell(komp_i,11).formula('SUM('+K.join()+')').style(uang2).style(blue_font);
-															}
-															
-															cb3(null, 'ok3');
-														})
 													})
+												})
 
+												async.series(tasks3, function(err, finish){
+													var F = _.map(index_komp, function(index){ return 'F'+index; });
+													var G = _.map(index_komp, function(index){ return 'G'+index; });
+													var H = _.map(index_komp, function(index){ return 'H'+index; });
+													var I = _.map(index_komp, function(index){ return 'I'+index; });
+													var K = _.map(index_komp, function(index){ return 'K'+index; });
+
+													ws.cell(outp_i,6).formula('SUM('+F.join()+')').style(uang).style(red_font);
+													ws.cell(outp_i,7).formula('SUM('+G.join()+')').style(uang).style(red_font).style(v_bg);
+													ws.cell(outp_i,8).formula('SUM('+H.join()+')').style(uang).style(red_font);
+													ws.cell(outp_i,9).formula('SUM('+I.join()+')').style(uang).style(red_font);
+													ws.cell(outp_i,11).formula('SUM('+K.join()+')').style(uang2).style(red_font);
+													cb4(null, 'ok4');
 												})
 											})
 
-											async.series(tasks3, function(err, finish){
-												var F = _.map(index_komp, function(index){ return 'F'+index; });
-												var G = _.map(index_komp, function(index){ return 'G'+index; });
-												var H = _.map(index_komp, function(index){ return 'H'+index; });
-												var I = _.map(index_komp, function(index){ return 'I'+index; });
-												var K = _.map(index_komp, function(index){ return 'K'+index; });
-
-												ws.cell(outp_i,6).formula('SUM('+F.join()+')').style(uang).style(red_font);
-												ws.cell(outp_i,7).formula('SUM('+G.join()+')').style(uang).style(red_font).style(v_bg);
-												ws.cell(outp_i,8).formula('SUM('+H.join()+')').style(uang).style(red_font);
-												ws.cell(outp_i,9).formula('SUM('+I.join()+')').style(uang).style(red_font);
-												ws.cell(outp_i,11).formula('SUM('+K.join()+')').style(uang2).style(red_font);
-												cb4(null, 'ok4');
-											})
 										})
+									})
 
+									async.series(tasks4, function(err, finish){
+										var F = _.map(index_outp, function(index){ return 'F'+index; });
+										var G = _.map(index_outp, function(index){ return 'G'+index; });
+										var H = _.map(index_outp, function(index){ return 'H'+index; });
+										var I = _.map(index_outp, function(index){ return 'I'+index; });
+										var K = _.map(index_outp, function(index){ return 'K'+index; });
+
+										ws.cell(keg_i,6).formula('SUM('+F.join()+')').style(uang).style(goldy_font);
+										ws.cell(keg_i,7).formula('SUM('+G.join()+')').style(uang).style(goldy_font).style(v_bg);
+										ws.cell(keg_i,8).formula('SUM('+H.join()+')').style(uang).style(goldy_font);
+										ws.cell(keg_i,9).formula('SUM('+I.join()+')').style(uang).style(goldy_font);
+										ws.cell(keg_i,11).formula('SUM('+K.join()+')').style(uang2).style(goldy_font);
+										cb5(null, 'ok5');
 									})
 								})
 
-								async.series(tasks4, function(err, finish){
-									var F = _.map(index_outp, function(index){ return 'F'+index; });
-									var G = _.map(index_outp, function(index){ return 'G'+index; });
-									var H = _.map(index_outp, function(index){ return 'H'+index; });
-									var I = _.map(index_outp, function(index){ return 'I'+index; });
-									var K = _.map(index_outp, function(index){ return 'K'+index; });
-
-									ws.cell(keg_i,6).formula('SUM('+F.join()+')').style(uang).style(goldy_font);
-									ws.cell(keg_i,7).formula('SUM('+G.join()+')').style(uang).style(goldy_font).style(v_bg);
-									ws.cell(keg_i,8).formula('SUM('+H.join()+')').style(uang).style(goldy_font);
-									ws.cell(keg_i,9).formula('SUM('+I.join()+')').style(uang).style(goldy_font);
-									ws.cell(keg_i,11).formula('SUM('+K.join()+')').style(uang2).style(goldy_font);
-									cb5(null, 'ok5');
-								})
 							})
+						})
 
+						async.series(tasks5, function(err, finish){
+							var F = _.map(index_keg, function(index){ return 'F'+index; });
+							var G = _.map(index_keg, function(index){ return 'G'+index; });
+							var H = _.map(index_keg, function(index){ return 'H'+index; });
+							var I = _.map(index_keg, function(index){ return 'I'+index; });
+							var K = _.map(index_keg, function(index){ return 'K'+index; });
+
+							ws.cell(prog_i,6).formula('SUM('+F.join()+')').style(uang).style(bold11).style(b).style(v_bg2);
+							ws.cell(prog_i,7).formula('SUM('+G.join()+')').style(uang).style(bold11).style(b).style(v_bg).style(v_bg2);
+							ws.cell(prog_i,8).formula('SUM('+H.join()+')').style(uang).style(bold11).style(b).style(v_bg2);
+							ws.cell(prog_i,9).formula('SUM('+I.join()+')').style(uang).style(bold11).style(b).style(v_bg2);
+							ws.cell(prog_i,11).formula('SUM('+K.join()+')').style(uang2).style(bold11).style(b).style(v_bg2);
+							cb6(null, 'ok6');
 						})
 					})
 
-					async.series(tasks5, function(err, finish){
-						var F = _.map(index_keg, function(index){ return 'F'+index; });
-						var G = _.map(index_keg, function(index){ return 'G'+index; });
-						var H = _.map(index_keg, function(index){ return 'H'+index; });
-						var I = _.map(index_keg, function(index){ return 'I'+index; });
-						var K = _.map(index_keg, function(index){ return 'K'+index; });
-
-						ws.cell(prog_i,6).formula('SUM('+F.join()+')').style(uang).style(bold11).style(b).style(v_bg2);
-						ws.cell(prog_i,7).formula('SUM('+G.join()+')').style(uang).style(bold11).style(b).style(v_bg).style(v_bg2);
-						ws.cell(prog_i,8).formula('SUM('+H.join()+')').style(uang).style(bold11).style(b).style(v_bg2);
-						ws.cell(prog_i,9).formula('SUM('+I.join()+')').style(uang).style(bold11).style(b).style(v_bg2);
-						ws.cell(prog_i,11).formula('SUM('+K.join()+')').style(uang2).style(bold11).style(b).style(v_bg2);
-						cb6(null, 'ok6');
-					})
 				})
-
 			})
-		})
 
-		async.series(tasks6, function(err, finish){
-			var F = _.map(index_prog, function(index){ return 'F'+index; });
-			var G = _.map(index_prog, function(index){ return 'G'+index; });
-			var H = _.map(index_prog, function(index){ return 'H'+index; });
-			var I = _.map(index_prog, function(index){ return 'I'+index; });
-			var K = _.map(index_prog, function(index){ return 'K'+index; });
+			async.series(tasks6, function(err, finish){
+				var F = _.map(index_prog, function(index){ return 'F'+index; });
+				var G = _.map(index_prog, function(index){ return 'G'+index; });
+				var H = _.map(index_prog, function(index){ return 'H'+index; });
+				var I = _.map(index_prog, function(index){ return 'I'+index; });
+				var K = _.map(index_prog, function(index){ return 'K'+index; });
 
-			ws.cell(row_pos,1).style(b_e);
-			ws.cell(row_pos,2).string('Jumlah').style({font: {bold: true, size:14}, alignment: {horizontal: 'center'}}).style(b_e);
-			ws.cell(row_pos,3).style(b_e);
-			ws.cell(row_pos,4).style(b_e);
-			ws.cell(row_pos,5).style(b_e);
-			ws.cell(row_pos,6).formula('SUM('+F.join()+')').style(uang).style(bold11).style(b_e);
-			ws.cell(row_pos,7).formula('SUM('+G.join()+')').style(uang).style(bold11).style(b_e);
-			ws.cell(row_pos,8).formula('SUM('+H.join()+')').style(uang).style(bold11).style(b_e);
-			ws.cell(row_pos,9).formula('SUM('+I.join()+')').style(uang).style(bold11).style(b_e);
-			ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang).style(bold11).style(b_e);
-			ws.cell(row_pos,11).formula('SUM('+K.join()+')').style(uang).style(bold11).style(b_e);
+				ws.cell(row_pos,1).style(b_e);
+				ws.cell(row_pos,2).string('Jumlah').style({font: {bold: true, size:14}, alignment: {horizontal: 'center'}}).style(b_e);
+				ws.cell(row_pos,3).style(b_e);
+				ws.cell(row_pos,4).style(b_e);
+				ws.cell(row_pos,5).style(b_e);
+				ws.cell(row_pos,6).formula('SUM('+F.join()+')').style(uang).style(bold11).style(b_e);
+				ws.cell(row_pos,7).formula('SUM('+G.join()+')').style(uang).style(bold11).style(b_e);
+				ws.cell(row_pos,8).formula('SUM('+H.join()+')').style(uang).style(bold11).style(b_e);
+				ws.cell(row_pos,9).formula('SUM('+I.join()+')').style(uang).style(bold11).style(b_e);
+				ws.cell(row_pos,10).formula('I'+row_pos+'/F'+row_pos+'*100').style(uang).style(bold11).style(b_e);
+				ws.cell(row_pos,11).formula('SUM('+K.join()+')').style(uang).style(bold11).style(b_e);
 
-			var file_name = date.replace(/\:|\//g, '-')+' REALISASI '+month[m]+' '+y;
+				var file_name = date.replace(/\:|\//g, '-')+' REALISASI '+month[m]+' '+y;
 
-			if(req.params.type == 'xlsx')
-				pok_wb.write(file_name+'.xlsx', res)
-				else {
-					msopdf(null, function(error, office) {
-						var input = __dirname + '/../temp_file/'+file_name+'.xlsx';
-						var output = __dirname + '/../temp_file/'+file_name+'.pdf';
+				if(req.params.type == 'xlsx')
+					pok_wb.write(file_name+'.xlsx', res)
+					else {
+						msopdf(null, function(error, office) {
+							var input = __dirname + '/../temp_file/'+file_name+'.xlsx';
+							var output = __dirname + '/../temp_file/'+file_name+'.pdf';
 
-						pok_wb.write(input, function (err, stats) {
-						    if (err) {
-						        console.error(err);
-						    }
+							pok_wb.write(input, function (err, stats) {
+								if (err) {
+									console.error(err);
+								}
 
-						    office.excel({'input': input, 'output': output}, function(error, pdf) {
-						    	if (err) {
-							        console.error(err);
-							    }
-							    //hapus xlsx setelah terconvert
-						    	if(checkFS(input)){
-                                    fs.unlink(input);
-                                }
-							})
+								office.excel({'input': input, 'output': output}, function(error, pdf) {
+									if (err) {
+										console.error(err);
+									}
+									//hapus xlsx setelah terconvert
+									if(checkFS(input)){
+										fs.unlink(input);
+									}
+								})
 
-							office.close(null, function(error) {
-	  							res.download(output);
-	  							res.on('finish', function() {
-	  								//hapus pdf setelah didownload
-									if(checkFS(output)){
-                                        fs.unlink(output);
-                                    }
-								});
-							})
+								office.close(null, function(error) {
+									res.download(output);
+									res.on('finish', function() {
+										//hapus pdf setelah didownload
+										if(checkFS(output)){
+											fs.unlink(output);
+										}
+									});
+								})
 
-						});
-						
-					})
-				}
+							});
+							
+						})
+					}
+			})
 		})
 	})
 });

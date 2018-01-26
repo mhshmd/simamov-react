@@ -71,8 +71,7 @@ class RDJK extends React.Component {
          this.toggleimportPgwModal = this.toggleimportPgwModal.bind(this)
          this.toggleYgBepergianModal = this.toggleYgBepergianModal.bind(this)
          this.handleYgBepergianTableChange = this.handleYgBepergianTableChange.bind(this)
-        //  this.setPgw = this.setPgw.bind(this)
-        //  this.fireYgBepergianTableChange = this.fireYgBepergianTableChange.bind(this)
+         this.sendDataForBuatSurat = this.sendDataForBuatSurat.bind(this)
     }
 
     // setPgw(data = this.refs.anggotaHot.hotInstance.getSourceData()){
@@ -95,6 +94,7 @@ class RDJK extends React.Component {
                     yang_bepergian[item[0]].jumlah_hari = moment(yang_bepergian[item[0]].tgl_kembali, 'DD/MM/YYYY').diff(moment(yang_bepergian[item[0]].tgl_berangkat, 'DD/MM/YYYY'), 'days') + 1;
                 }
             } else if(item[1] === 'nama'){
+                console.log(item[3]);
                 if(item[3]){
                     const _id = item[3].match(/.*\(NIP.\s(.*)\)/);
                     if(_id){
@@ -136,14 +136,12 @@ class RDJK extends React.Component {
         }
     }
 
-    buatSurat(e, toPdf = true) {
+    sendDataForBuatSurat(toPdf = true, cb){
+        //lihat data yang dikirim
         console.log(this.state);
-        // return
-        this.setState({isSubmitBuatSurat: true})
+        //kirim data ke server utk buat surat tugas, be = surtug.js
         const { yang_bepergian, data } = this.state;
         socket.emit('surtug_buat_surat', {toPdf: toPdf, yang_bepergian: yang_bepergian, data: data}, (pdfLink)=>{
-            // console.log(pdfLink);
-            // return;
             if(pdfLink === false){
                 
             } else{
@@ -155,15 +153,28 @@ class RDJK extends React.Component {
         })
     }
 
+    buatSurat(e, toPdf = true) {
+        this.setState({isSubmitBuatSurat: true})
+        this.sendDataForBuatSurat(true, ()=>{
+            this.setState({ isSubmitBuatSurat: false });
+        })
+    }
+
     downloadSurat() {
         this.setState({ isDownloadingSurat: true });
-        buatSurat(e, toPdf = false)
+        this.sendDataForBuatSurat(false, ()=>{
+            this.setState({ isDownloadingSurat: false });
+        })
     }
 
     toggleimportPgwModal() {
         this.setState({
             importPgwModal: !this.state.importPgwModal
         });
+    }
+
+    componentDidMount(){
+        setPDFPreviewSRC("http://localhost/result/surat_tugas.pdf")
     }
 
     render() {
@@ -256,7 +267,7 @@ class RDJK extends React.Component {
                                                             <ModalBody>
                                                                 <HotTable root="hot" ref='anggotaHot' width="100%" height="640" manualColumnResize={true} settings={{
                                                                     data: yang_bepergian,
-                                                                    dataSchema: {_id: null, nama: '', gol: null, jabatan: null, lokasi: null, tgl_berangkat: null, tgl_kembali: null, jumlah_hari: null},
+                                                                    dataSchema: {_id: null, nama: null, gol: null, jabatan: null, lokasi: null, tgl_berangkat: null, tgl_kembali: null, jumlah_hari: null},
                                                                     colHeaders: true,
                                                                     rowHeaders: true,
                                                                     colHeaders: ['Nama', 'Gol', 'Jabatan', 'Tujuan', 'Tanggal Berangkat', 'Tanggal Kembali', 'Jumlah Hari (Hari)'],
@@ -268,7 +279,7 @@ class RDJK extends React.Component {
                                                                             type: 'autocomplete',
                                                                             source: function (query, process) {
                                                                                 this.props.socket.emit('surtug_nama', query, function (data) {
-                                                                                    process(_.map(data, function(peg){ return peg.nama+' (NIP. '+peg._id+')'}));
+                                                                                    process(_.map(data, function(peg){ return {nama: peg.nama+' (NIP. '+peg._id+')'}}));
                                                                                 });
                                                                             }.bind(this),
                                                                             data: 'nama',
@@ -600,13 +611,3 @@ function mapStateToProps(state){
 }
 
 export default connect(mapStateToProps)(RDJK)
-
-// <Typeahead
-//     onChange={(selected) => {
-//         console.log(selected[0]);
-//         var data = {...this.state.data};
-//         data.pembuat_daftar = selected[0];
-//         this.setState({data});
-//     }}
-//     options={[ {id: 1, label: 'Muh. Shamad,SST'},{id: 2, label: 'Bambang Nur Cahyo, SE, MM'},{id: 3, label: '3'},{id: 4, label: '4'} ]}
-// />

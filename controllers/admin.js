@@ -19,7 +19,14 @@ admin.connections;
 
 admin.io;
 
-admin.socket = function(io, connections, client){
+var redisClient;
+
+admin.setRedisClient = (client)=>{
+	redisClient = client;
+}
+var getLoggedUser = require('./function/getLoggedUser')
+
+admin.socket = function(io, connections, client, loggedUser){
 	admin.connections = connections;
 
 	admin.io = io;
@@ -28,7 +35,7 @@ admin.socket = function(io, connections, client){
 		User.findOne({'_id': syarat._id}, 'act').exec(function(err, result){
 			var real = [];
 			if(result){
-				var y = client.handshake.session.tahun_anggaran || new Date().getFullYear();
+				var y = loggedUser.tahun_anggaran || new Date().getFullYear();
 				var m = syarat.month || new Date().getMonth();
 				var lower_ts = syarat.lower_ts || Math.round(new Date(y, m, 1).getTime())
 				var upper_ts = syarat.upper_ts || Math.round(new Date(y, +m + 1, 0).getTime()) + 86399000;
@@ -46,16 +53,18 @@ admin.socket = function(io, connections, client){
 
 //route GET /admin
 admin.get('/', function(req, res){
-	if(!req.session.jenis){
-		sendNotification(req.session.user_id, 'Maaf, Anda tidak memiliki hak akses.');
-		res.sendStatus(403);
-		return;
-	}
-	User.find({jenis: 1, active: true}, null, {sort: {username:1}}, function(err, adm_user){
-		User.find({jenis: 0, active: true}, null, {sort: {username:1}}, function(err, editor_user){
-			res.render('admin', {layout: false, adm_user: adm_user, editor_user: editor_user});
+	getLoggedUser( redisClient, req.cookies.uid, ( loggedUser ) => {
+		if(!loggedUser.jenis){
+			sendNotification(loggedUser.uid, 'Maaf, Anda tidak memiliki hak akses.');
+			res.sendStatus(403);
+			return;
+		}
+		User.find({jenis: 1, active: true}, null, {sort: {username:1}}, function(err, adm_user){
+			User.find({jenis: 0, active: true}, null, {sort: {username:1}}, function(err, editor_user){
+				res.render('admin', {layout: false, adm_user: adm_user, editor_user: editor_user});
+			});
 		});
-	});
+	} );
 });
 //route tambah user
 admin.post('/tambah_user', function(req, res){
@@ -69,7 +78,7 @@ admin.post('/tambah_user', function(req, res){
 		} else {
 			user.save(function(err, result){
 				res.send(result._id);
-				User.update({_id: req.session.user_id}, {$push: {"act": {label: 'Tambah user '+result._id}}}, 
+				User.update({_id: req.cookies.uid}, {$push: {"act": {label: 'Tambah user '+result._id}}}, 
 					function(err, status){
 				})
 			})
@@ -85,7 +94,7 @@ admin.delete('/hapus_user/:id', function(req, res){
     		return;
     	}
     	res.send('Berhasil dihapus.');
-    	User.update({_id: req.session.user_id}, {$push: {"act": {label: 'Hapus user '+req.params.id}}}, 
+    	User.update({_id: req.cookies.uid}, {$push: {"act": {label: 'Hapus user '+req.params.id}}}, 
 			function(err, status){
 		})
 	});
@@ -107,7 +116,7 @@ admin.post('/edit/:_id', function(req, res){
 	    		return;
 	    	}
 	    	res.send('Berhasil diubah.')
-	    	User.update({_id: req.session.user_id}, {$push: {"act": {label: 'Edit user '+req.params._id}}}, 
+	    	User.update({_id: req.cookies.uid}, {$push: {"act": {label: 'Edit user '+req.params._id}}}, 
 				function(err, status){
 			})
 	    }

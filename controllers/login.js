@@ -28,12 +28,19 @@ var bruteforce = new ExpressBrute(store, {
 	maxWait: 5*60*1000
 });
 
+var redisClient;
+
+login.setRedisClient = (client)=>{
+	redisClient = client;
+}
+var getLoggedUser = require('./function/getLoggedUser')
+
 //Socket.io
 login.connections;
 
 login.io;
 
-login.socket = function(io, connections, client){
+login.socket = function(io, connections, client, loggedUser){
 	login.connections = connections;
 
 	login.io = io;
@@ -65,17 +72,17 @@ login.post('/', bruteforce.prevent, function(req, res){
                    .digest('hex');
 	//cek login ke db
 	User.findOne({ 'username':  req.body.username, 'password': hash, active: true}, function (err, user) {
-		if(req.session.last_try_ts){
-			if(req.session.last_try_ts + 300 < Math.round(new Date().getTime()/1000)){
-				req.session.last_try_ts = 0;
-				req.session.login_failed = 0;
+		if(req.cookies.last_try_ts){
+			if(req.cookies.last_try_ts + 300 < Math.round(new Date().getTime()/1000)){
+				res.cookie( 'last_try_ts', 0 )
+				res.cookie( 'login_failed', 0 )
 			}
 		}
 		if (err) {
 			//jika koneksi error
 			res.send('Database bermasalah, mohon hubungi admin');
 			return;
-		} else if(!user || req.session.login_failed > 4){
+		} else if(!user || req.cookies.login_failed > 4){
 			//jika user tdk ada
 			var href = '';
 			if(req.query.href){
@@ -92,26 +99,32 @@ login.post('/', bruteforce.prevent, function(req, res){
 					}
 				}
 				var message = 'Username atau password salah'
-				if(!req.session.login_failed){
-					req.session.login_failed = 1;
+				if(!req.cookies.login_failed){
+					res.cookie( 'login_failed', 1 )
 				} else{
-					req.session.login_failed += 1;
+					res.cookie( 'login_failed', req.cookies.login_failed = +req.cookies.login_failed + 1 )
 				}
-				if(req.session.login_failed > 4){
+				if(req.cookies.login_failed > 4){
 					message = 'Anda salah memasukkan username/password 5 kali. Silahkan masukkan lagi setelah 5 menit.';
-					if(!req.session.last_try_ts){
-						req.session.last_try_ts = Math.round(new Date().getTime()/1000);
+					if(!req.cookies.last_try_ts){
+					res.cookie( 'last_try_ts', Math.round(new Date().getTime()/1000) )
 					}					
 				}
 				res.render('login', {layout: false, href: href, message: message, 'thang': thang, 'this_year': new Date().getFullYear()});
 			})
 			return;
 		}
-		//simpan session utk nama & tahun anggaran
-		req.session.username = req.body.username;
-		req.session.tahun_anggaran = req.body.tahun_anggaran;
-		req.session.jenis = user.jenis;
-		req.session.user_id = user._id;
+
+		//set cookies utk user id
+		res.cookie( 'uid', user._id )
+
+		if(redisClient){
+			redisClient.hmset( user._id, [
+				'username', req.body.username,
+				'tahun_anggaran', req.body.tahun_anggaran,
+				'jenis', user.jenis
+			])
+		}
 
 		//ke home
 		if(!req.query.href) req.query.href = ''

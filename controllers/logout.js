@@ -7,12 +7,19 @@ var logout = express.Router();
 //load model User
 var User = require(__dirname+"/../model/User.model");
 
+var redisClient;
+
+logout.setRedisClient = (client)=>{
+	redisClient = client;
+}
+var getLoggedUser = require('./function/getLoggedUser')
+
 //route GET /logout
 logout.get('/', function(req, res){
-	User.update({_id: req.session.user_id}, {$push: {"act": {label: 'Logout'}}}, function(err, status){
+	User.update({_id: req.cookies.uid}, {$push: {"act": {label: 'Logout'}}}, function(err, status){
 
 	});
-	req.session.destroy();
+	res.clearCookie('uid')
 	res.redirect('login');
 });
 

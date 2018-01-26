@@ -1,4 +1,5 @@
 use simamov;
+console.log(Object.assign({c:3, d:1, a:2}, a));
 // show collections
 // db.getCollection('bruteforce-store').findOne({})
 // db.my_api_limits_coll.ensureIndex({expires: 1}, {expireAfterSeconds: 0});

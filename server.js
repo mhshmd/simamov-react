@@ -1,7 +1,14 @@
 //====== MODUL ======//
 //load framework express
-var express = require('express');
-var app = express();
+const express = require('express');
+const app = express();
+const redis = require('redis')
+
+let redisClient = redis.createClient();
+
+redisClient.on('connect', ()=>{
+	console.log('Redis connected.');
+})
 
 var server = require('http').createServer(app);  
 var io = require('socket.io')(server);
@@ -50,10 +57,9 @@ var session = require('express-session')({
 	secret: credentials.cookieSecret
 });
 var sharedsession = require("express-socket.io-session");
-app.use(session);
-io.use(sharedsession(session, {
-    autoSave:true
-})); 
+app.use(session); //share session
+
+io.use(sharedsession(session, cookieParser(credentials.cookieSecret)));
 
 //modul handlebars utk dynamic page render
 var handlebars = require('express-handlebars').create({defaultLayout: 'main',
@@ -99,6 +105,7 @@ app.use('/download', express.static(__dirname + '/template/output/riwayat'));
 
 //====== ROUTES ======//
 var login = require('./controllers/login.js'); //route index
+login.setRedisClient(redisClient);
 app.use('/login', login); //root menggunakan dialihkan ke index.js
 
 
@@ -107,7 +114,7 @@ var _ = require("underscore");
 
 //cek login, urutan harus di bawah route login
 var login_check = function (req, res, next) {
-	if(!req.session.username && (process.env.NODE_ENV === 'production')){
+	if(!req.cookies.uid){
 		Program.findOne().sort({'thang': 1}).exec(function(error, programs) {
 			var thang = [];
 			if(!programs){
@@ -122,12 +129,6 @@ var login_check = function (req, res, next) {
 		})
 		return;
 	}
-	//register socket.io utk call via socket
-	io.on('connection', function(client) {
-		if(req.session)
-			connections[req.session.user_id] = client;
-	})
-
   	next()
 }
 
@@ -135,34 +136,44 @@ app.use(login_check)
 
 //Home
 var index = require('./controllers/index.js'); //route index
+index.setRedisClient(redisClient);
 app.use('/', index); //root menggunakan dialihkan ke index.js
 
 //SPPD
 var sppd = require('./controllers/sppd.js');
+sppd.setRedisClient(redisClient);
 app.use('/sppd', sppd); 
 //SPJ
 var spj = require('./controllers/spj.js');
+spj.setRedisClient(redisClient);
 app.use('/spj', spj);
 //PEGAWAI
 var pegawai = require('./controllers/pegawai.js');
+pegawai.setRedisClient(redisClient);
 app.use('/pegawai', pegawai);
 //POK
 var pok = require('./controllers/pok.js');
+pok.setRedisClient(redisClient);
 app.use('/pok', pok);
 //SURTUG REACT
 var surtug = require('./controllers/surtug.js');
+surtug.setRedisClient(redisClient);
 app.use('/surtug', surtug);
 //RDJK
 var rdjk = require('./controllers/rdjk.js');
+rdjk.setRedisClient(redisClient);
 app.use('/rdjk', rdjk);
 //ADMIN
 var admin = require('./controllers/admin.js');
+admin.setRedisClient(redisClient);
 app.use('/admin', admin);
 //LOGOUT
 var logout = require('./controllers/logout.js');
+logout.setRedisClient(redisClient);
 app.use('/logout', logout);
 //BANTUAN
 var bantuan = require('./controllers/bantuan.js');
+bantuan.setRedisClient(redisClient);
 app.use('/bantuan', bantuan);
 
 //route jika halaman tidak ditemukan
@@ -178,26 +189,39 @@ app.use(function(err, req, res, next){
 	res.render('500', {layout: false});
 });
 
-server.listen(process.env.PORT || 3000, function(){
-	console.log('Server listening on '+(process.env.PORT || 3000));
+server.listen(process.env.PORT || 80, function(){
+	console.log('Server listening on '+(process.env.PORT || 80));
 });
+
+var getLoggedUser = require('./controllers/function/getLoggedUser')
 
 io.on('connection', function(client) {
 
-	if(!client.handshake.session.user_id && (process.env.NODE_ENV === 'production')){
+	if(!client.handshake.cookies.uid){
 
 		client.emit('login_required', 'Anda harus login.');
 		return;
 
-	}
+	} else {
 
-	pok.socket(io, connections, client);
-	sppd.socket(io, connections, client);
-	surtug.socket(io, connections, client);
-	spj.socket(io, connections, client);
-	pegawai.socket(io, connections, client);
-	admin.socket(io, connections, client);
-	login.socket(io, connections, client);
+		getLoggedUser(redisClient, client.handshake.cookies.uid, ( loggedUser ) => {
+
+			if( !loggedUser ){
+				client.emit('login_required', 'Anda harus login.');
+				return;
+			}
+			
+			pok.socket(io, connections, client, loggedUser);
+			sppd.socket(io, connections, client, loggedUser);
+			surtug.socket(io, connections, client, loggedUser);
+			spj.socket(io, connections, client, loggedUser);
+			pegawai.socket(io, connections, client, loggedUser);
+			admin.socket(io, connections, client, loggedUser);
+			login.socket(io, connections, client, loggedUser);
+
+		} )
+
+	}
 
 	client.on('join', function(data) {
     	client.emit('messages', 'Terhubung ke server.');

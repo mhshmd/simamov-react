@@ -63,14 +63,21 @@ sppd.connections;
 
 sppd.io;
 
-sppd.socket = function(io, connections, client){
+var redisClient;
+
+sppd.setRedisClient = (client)=>{
+	redisClient = client;
+}
+
+var getLoggedUser = require('./function/getLoggedUser')
+
+sppd.socket = function(io, connections, client, loggedUser){
     sppd.connections = connections;
 
     sppd.io = io;
 
-    var thang = client.handshake.session.tahun_anggaran;
-    var user_aktiv = client.handshake.session.username || 'dummy user';
-
+    var thang = loggedUser.tahun_anggaran;
+    var user_aktiv = loggedUser.username;
 
     client.on('komponen_list', function (q, cb){
         if(q.query){
@@ -770,94 +777,102 @@ sppd.socket = function(io, connections, client){
             cb(result);
         })  
     })
-
-
 };
 
 sppd.get('/surat_tugas', function(req, res){
-    SettingSPPD.findOne({}).populate('ttd_st ttd_leg bendahara ppk').exec(function(err, result){
-        if(!result){
-            SettingSPPD.update({}, {last_nmr_surat: 1}, {upsert: true}, function(err, last){
-                result = {};
-                result.last_nmr_surat = 1;
-                res.render('sppd/surat_tugas', {layout: false,  setting: result, admin: req.session.jenis});
-            })
-            return;
-        }
-        if(!result.last_nmr_surat){
-            SettingSPPD.update({}, {last_nmr_surat: 1}, {upsert: true}, function(err, last){
-                result.last_nmr_surat = 1;
-                res.render('sppd/surat_tugas', {layout: false,  setting: result, admin: req.session.jenis});
-            })
-        } else {
-            res.render('sppd/surat_tugas', {layout: false,  setting: result, admin: req.session.jenis});
-        }       
-    })
+    getLoggedUser( redisClient, req.cookies.uid, ( loggedUser ) => {
+		SettingSPPD.findOne({}).populate('ttd_st ttd_leg bendahara ppk').exec(function(err, result){
+            if(!result){
+                SettingSPPD.update({}, {last_nmr_surat: 1}, {upsert: true}, function(err, last){
+                    result = {};
+                    result.last_nmr_surat = 1;
+                    res.render('sppd/surat_tugas', {layout: false,  setting: result, admin:loggedUser.jenis});
+                })
+                return;
+            }
+            if(!result.last_nmr_surat){
+                SettingSPPD.update({}, {last_nmr_surat: 1}, {upsert: true}, function(err, last){
+                    result.last_nmr_surat = 1;
+                    res.render('sppd/surat_tugas', {layout: false,  setting: result, admin:loggedUser.jenis});
+                })
+            } else {
+                res.render('sppd/surat_tugas', {layout: false,  setting: result, admin:loggedUser.jenis});
+            }       
+        })
+	} );
 });
 
 sppd.post('/surat_tugas', function(req, res){
-    handleSuratTugas(req.body, null, res, req.session.user_id);
+    handleSuratTugas(req.body, null, res, req.cookies.uid);
 });
 
 sppd.get('/surat_tugas_biasa', function(req, res){
-    SettingSPPD.findOne({}).populate('ttd_st ttd_leg bendahara ppk').exec(function(err, result){
-        if(!result){
-            SettingSPPD.update({}, {last_nmr_surat: 1}, {upsert: true}, function(err, last){
-                result = {};
-                result.last_nmr_surat = 1;
-                res.render('sppd/surat_tugas_biasa', {layout: false,  setting: result, admin: req.session.jenis});
-            })
-            return;
-        }
-        if(!result.last_nmr_surat){
-            SettingSPPD.update({}, {last_nmr_surat: 1}, {upsert: true}, function(err, last){
-                result.last_nmr_surat = 1;
-                res.render('sppd/surat_tugas_biasa', {layout: false,  setting: result, admin: req.session.jenis});
-            })
-        } else {
-            res.render('sppd/surat_tugas_biasa', {layout: false,  setting: result, admin: req.session.jenis});
-        }       
-    })
+    getLoggedUser( redisClient, req.cookies.uid, ( loggedUser ) => {
+		SettingSPPD.findOne({}).populate('ttd_st ttd_leg bendahara ppk').exec(function(err, result){
+            if(!result){
+                SettingSPPD.update({}, {last_nmr_surat: 1}, {upsert: true}, function(err, last){
+                    result = {};
+                    result.last_nmr_surat = 1;
+                    res.render('sppd/surat_tugas_biasa', {layout: false,  setting: result, admin: loggedUser.jenis});
+                })
+                return;
+            }
+            if(!result.last_nmr_surat){
+                SettingSPPD.update({}, {last_nmr_surat: 1}, {upsert: true}, function(err, last){
+                    result.last_nmr_surat = 1;
+                    res.render('sppd/surat_tugas_biasa', {layout: false,  setting: result, admin: loggedUser.jenis});
+                })
+            } else {
+                res.render('sppd/surat_tugas_biasa', {layout: false,  setting: result, admin: loggedUser.jenis});
+            }       
+        })
+	} );
 });
 
 sppd.post('/surat_tugas_biasa', function(req, res){
-    handleSuratTugasBiasa(req.body, null, res, req.session.user_id);
+    handleSuratTugasBiasa(req.body, null, res, req.cookies.uid);
 });
 
 sppd.get('/perhitungan', function(req, res){
-    SuratTugas.findOne({}).sort({'_id': -1}).populate('nama_lengkap').exec( function(err, st) {
-        if(!st){
-            Prov.findOne({_id: '31'}, function(err, prov){
-                prov.taksi_dn = +prov.taksi_dn*2;
-                res.render('sppd/perhitungan', {layout: false, 'st': st, 'prov': prov, admin: req.session.jenis});
-            })
-            return;
-        }
-        if(!st.nama_lengkap){
-            SuratTugas.findOne({_id: st._id}, function(err, sutu) {
-                CustomEntity.findOne({_id: sutu.nama_lengkap}, function(err, ce){
-                    if(!ce){
-                        res.render('sppd/perhitungan', {layout: false, admin: req.session.jenis});
-                    } else {
-                        st.nama_lengkap = ce.toObject();
-                        Prov.findOne({_id: '31'}, function(err, prov){
-                            prov.taksi_dn = +prov.taksi_dn*2;
-                            res.render('sppd/perhitungan', {layout: false, 'st': st, 'prov': prov, admin: req.session.jenis});
-                        })
-                    }
+    getLoggedUser( redisClient, req.cookies.uid, ( loggedUser ) => {
+		SuratTugas.findOne({}).sort({'_id': -1}).populate('nama_lengkap').exec( function(err, st) {
+            if(!st){
+                Prov.findOne({_id: '31'}, function(err, prov){
+                    prov.taksi_dn = +prov.taksi_dn*2;
+                    res.render('sppd/perhitungan', {layout: false, 'st': st, 'prov': prov, admin: loggedUser.jenis});
                 })
-            })
-        } else {
-            Prov.findOne({_id: '31'}, function(err, prov){
-                prov.taksi_dn = +prov.taksi_dn*2;
-                res.render('sppd/perhitungan', {layout: false, 'st': st, 'prov': prov, admin: req.session.jenis});
-            })
-        }
-    });
+                return;
+            }
+            if(!st.nama_lengkap){
+                SuratTugas.findOne({_id: st._id}, function(err, sutu) {
+                    CustomEntity.findOne({_id: sutu.nama_lengkap}, function(err, ce){
+                        if(!ce){
+                            res.render('sppd/perhitungan', {layout: false, admin: loggedUser.jenis});
+                        } else {
+                            st.nama_lengkap = ce.toObject();
+                            Prov.findOne({_id: '31'}, function(err, prov){
+                                prov.taksi_dn = +prov.taksi_dn*2;
+                                res.render('sppd/perhitungan', {layout: false, 'st': st, 'prov': prov, admin: loggedUser.jenis});
+                            })
+                        }
+                    })
+                })
+            } else {
+                Prov.findOne({_id: '31'}, function(err, prov){
+                    prov.taksi_dn = +prov.taksi_dn*2;
+                    res.render('sppd/perhitungan', {layout: false, 'st': st, 'prov': prov, admin: loggedUser.jenis});
+                })
+            }
+        });
+	} );
+    
 });
 
 sppd.post('/perhitungan', function(req, res){
-    handlePerhitungan(req.body, null, res, req.session.username || 'dummy user', req.session.user_id);
+    getLoggedUser( redisClient, req.cookies.uid, ( loggedUser ) => {
+		handlePerhitungan(req.body, null, res, loggedUser.username, req.cookies.uid);
+	} );
+    
 });
 
 sppd.get('/perhitungan-old', function(req, res){
@@ -878,7 +893,7 @@ sppd.post('/pengaturan/unggah_template/:type', function(req, res){
             function(callback){
                 form.parse(req, function(err, fields, file){
                     if(err){
-                        errorHandler(req.session.user_id, 'Form parse Error. Mohon hubungi admin.');
+                        errorHandler(req.cookies.uid, 'Form parse Error. Mohon hubungi admin.');
                         return;
                     }
                     callback(null, 'File parsed')
