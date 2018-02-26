@@ -5,6 +5,10 @@ var Schema = mongoose.Schema;
 var UraianAkun = require(__dirname+"/../model/UraianAkun.model");
 
 var AkunSchema = new Schema({
+    'tipe': {
+        default: 'akun',
+        type: String
+    },
     'thang': {
         type: Number,
         default: new Date().getFullYear()

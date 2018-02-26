@@ -3,6 +3,10 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 var DetailBelanjaSchema = new Schema({
+    'tipe': {
+        default: 'detail',
+        type: String
+    },
     'thang': {
         type: Number,
         default: new Date().getFullYear()

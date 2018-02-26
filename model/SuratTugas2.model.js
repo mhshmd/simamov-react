@@ -1,11 +1,28 @@
-var mongoose = require('mongoose');
+const mongoose = require('mongoose');
+const moment = require('moment')
 
 var Schema = mongoose.Schema;
 
 var SuratTugasSchema = new Schema({
-    yang_bepergian: {
-        type: {},
-        required: [true, 'Anggota perjalanan dinas belum ditentukan.'],
+    nomor_sppd: {
+        type: String,
+        required: [true, 'Nomor surat tugas bermasalah.']
+    },
+    nama: {
+        type: String,
+        required: [true, 'Nama anggota ada yang kosong.']
+    },
+    nip: {
+        type: String,
+        required: [true, 'nip anggota ada yang kosong.']
+    },
+    gol: {
+        type: String,
+        required: [true, 'Gol anggota ada yang kosong.']
+    },
+    jabatan: {
+        type: String,
+        required: [true, 'Jabatan anggota ada yang kosong.']
     },
     output: {
         type: [{}],
@@ -16,7 +33,7 @@ var SuratTugasSchema = new Schema({
         required: [true, 'Kode output belum ditentukan.'],
     },
     tugas: {
-        type: String,
+        type: {},
         required: [true, 'Tugas belum ditentukan.'],
     },
     prov: {
@@ -25,6 +42,7 @@ var SuratTugasSchema = new Schema({
     },
     kab: [{}],
     org: [{}],
+    lokasi: String,
     posisi_kota: {
         type: String,
         required: [true, 'Posisi Kota belum ditentukan.'],
@@ -37,6 +55,7 @@ var SuratTugasSchema = new Schema({
         type: Date,
         required: [true, 'Tanggal kembali belum ditentukan.'],
     },
+    jumlah_hari: Number,
     jenis_ang: {
         type: String,
         required: [true, 'Jenis angkutan belum ditentukan.'],
@@ -52,7 +71,53 @@ var SuratTugasSchema = new Schema({
     tgl_ttd_surtug: {
         type: Date,
         required: [true, 'Tanggal ttd surat tugas belum ditentukan.'],
+    },
+    ppk: {
+        type: {},
+        required: [true, 'PPK belum ditentukan.'],
+    }    
+}, { collection: 'surat_tugas2'});
+
+SuratTugasSchema.virtual('lokasi_').get(function () {
+
+    var lokasi_ = [];
+
+    if( this.lokasi ){
+        return this.lokasi
     }
-}, { collection: 'surat_tugas'});
+
+    if(this.org.length){
+        lokasi_.push(this.org[0].nama);
+    }
+
+    if (this.kab.length) {
+        lokasi_.push(this.kab[0].nama)
+    }
+
+    if (this.prov.length) {
+        lokasi_.push(this.prov[0].nama)
+    }
+
+    return lokasi_.join(", ");
+
+});
+
+SuratTugasSchema.virtual('jumlah_hari_').get(function () {
+
+    if( this.jumlah_hari ){
+        return this.jumlah_hari
+    }
+
+    return moment(this.tgl_kembali, 'DD/MM/YYYY').diff(moment(this.tgl_berangkat, 'DD/MM/YYYY'), 'days') + 1;
+
+});
+
+SuratTugasSchema.virtual('kop_ttd_st').get(function () {
+    if( this.penanda_tgn_st.jabatan === 'Ketua STIS' ){
+        return ''
+    } else{
+        return 'A.n. Ketua Sekolah Tinggi Ilmu Statistik'
+    }
+});
 
 module.exports = mongoose.model('SuratTugas2', SuratTugasSchema);

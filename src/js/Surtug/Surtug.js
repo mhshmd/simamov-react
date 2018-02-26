@@ -1,17 +1,17 @@
 import React from 'react';
-import {Alert, Button, ButtonGroup, Card, CardGroup, CardHeader, CardBody, CardText, Col, Collapse, Dropdown, DropdownToggle, DropdownMenu, DropdownItem, Form, FormGroup, Input, InputGroup, Label, Modal, ModalHeader, ModalBody, ModalFooter, TabContent, TabPane, Nav, NavItem, NavLink, Row} from "reactstrap";
+import {Alert, Button, ButtonGroup, Card, CardGroup, CardHeader, CardBody, CardText, Col, Collapse, Dropdown, DropdownToggle, DropdownMenu, DropdownItem, Form, FormGroup, Input, InputGroup, InputGroupButton, Label, Modal, ModalHeader, ModalBody, ModalFooter, TabContent, TabPane, Nav, NavItem, NavLink, Row} from "reactstrap";
 import HotTable from 'react-handsontable';
 import Datetime from 'react-datetime';
 import moment from 'moment';
 import Pikaday from 'pikaday';
 import _ from 'underscore';
+import {AgGridReact, AgGridColumn} from "ag-grid-react";
 
 import {asyncContainer, Typeahead} from 'react-bootstrap-typeahead';
 const AsyncTypeahead = asyncContainer(Typeahead);
 //redux
 import { connect } from 'react-redux';
 import PDFSimplePreview from '../../component/PDFSimplePreview';
-import DetailBelanjaSelector from '../../component/DetailBelanjaSelector';
 
 import {setPDFPreviewSRC} from '../../redux/actions/rdjkActions'
 import getNumber from '../../functions/getNumber'
@@ -21,6 +21,8 @@ import toTitleCase from '../../functions/toTitleCase'
 import '../../../css/typeahead-react.css';
 import '../../../css/react-datetime.css';
 import '../../../css/pikaday.css';
+import 'ag-grid/dist/styles/ag-grid.css';
+import 'ag-grid/dist/styles/ag-theme-fresh.css';
 
 class RDJK extends React.Component {
     constructor(props) {
@@ -29,62 +31,56 @@ class RDJK extends React.Component {
             isSubmitBuatSurat: false,
             isDownloadingSurat: false,
             isLoading: false,
+            isTugasLoading: false,
             isOutputLoading: false,
             isProvLoading: false,
             isKabLoading: false,
             isOrgLoading: false,
             importPgwModal: false,
             ygBepergianModal: false,
-            options: [],
-            penanda_tgn_st_list: [
-                {_id:'19580311 198003 1 004', nama: 'Dr. Hamonangan Ritonga, M.Sc.'},
-                {_id:'19671022 199003 2 002', nama: 'Dr. Erni Tri Astuti, M.Math.'},
-            ],
-            penanda_tgn_legalitas_list: [
-                {_id:'19700513 199211 1 001', nama: 'Bambang Nurcahyo, S.E., M.M.'},
-                {_id:'19700926 199211 1 001', nama: 'Nurseto Wisnumurti, S.Si, M.Stat.'},
-            ],
+            riwayatSuratModal: false,
+            tugasOptions: [],
+            nameOptions: [],
+            kompOptions: [],
+            provOptions: [],
+            kabOptions: [],
+            orgOptions: [],
+            penanda_tgn_st_list: [],
+            penanda_tgn_legalitas_list: [],
             penanda_tgn_st_selected: '',
             penanda_tgn_legalitas_selected: '',
             yang_bepergian: [],
-            data: {
-                starting_sppd: '1/SPD/STIS/2018',
-                tugas: 'Perjalanan Tim Advance Dosen dalam rangka Penelitian Program DIV',
-                posisi_kota: 'Luar Kota',
-                jenis_ang: 'Plane',
-                output: [],
-                kode_output: '',
-                prov: [],
-                kab: [],
-                org: [],
-                tgl_berangkat: new Date(),
-                tgl_kembali: new Date(),
-                tgl_ttd_surtug: new Date(),
-                penanda_tgn_st: {},
-                penanda_tgn_legalitas: {}
-            }
+            starting_sppd: '1/SPD/STIS/'+new Date().getFullYear(),
+            tugas: [],
+            posisi_kota: 'Luar Kota',
+            jenis_ang: 'Plane',
+            output: [],
+            kode_output: '',
+            prov: [],
+            kab: [],
+            org: [],
+            tgl_berangkat: new Date(),
+            tgl_kembali: new Date(),
+            tgl_ttd_surtug: new Date(),
+            penanda_tgn_st: {},
+            penanda_tgn_legalitas: {},
+            rowData: [],
+            columnDefs: [
+                {headerName: 'No. Surat', field: 'nomor_sppd'},
+                {headerName: 'Nama', field: 'nama'},
+                {headerName: 'Tujuan', field: 'tugas'}
+            ],
          };
 
          this.handleInputChange = this.handleInputChange.bind(this)
          this.buatSurat = this.buatSurat.bind(this)
          this.downloadSurat = this.downloadSurat.bind(this)
-         this.toggleimportPgwModal = this.toggleimportPgwModal.bind(this)
+         this.toggleRiwayatSurtugModal = this.toggleRiwayatSurtugModal.bind(this)
          this.toggleYgBepergianModal = this.toggleYgBepergianModal.bind(this)
          this.handleYgBepergianTableChange = this.handleYgBepergianTableChange.bind(this)
          this.sendDataForBuatSurat = this.sendDataForBuatSurat.bind(this)
+         this.resetForm = this.resetForm.bind(this)
     }
-
-    // setPgw(data = this.refs.anggotaHot.hotInstance.getSourceData()){
-    //     console.log(11111111111, data.pop());
-    //     this.setState({
-    //         yang_bepergian: data,
-    //     });
-    // }
-
-    // fireYgBepergianTableChange(data){
-    //     this.refs.anggotaHot.hotInstance.render();
-    //     this.setPgw();
-    // }
 
     handleYgBepergianTableChange(changes) {
         var yang_bepergian = this.refs.anggotaHot.hotInstance.getSourceData();
@@ -94,7 +90,6 @@ class RDJK extends React.Component {
                     yang_bepergian[item[0]].jumlah_hari = moment(yang_bepergian[item[0]].tgl_kembali, 'DD/MM/YYYY').diff(moment(yang_bepergian[item[0]].tgl_berangkat, 'DD/MM/YYYY'), 'days') + 1;
                 }
             } else if(item[1] === 'nama'){
-                console.log(item[3]);
                 if(item[3]){
                     const _id = item[3].match(/.*\(NIP.\s(.*)\)/);
                     if(_id){
@@ -109,6 +104,7 @@ class RDJK extends React.Component {
                 }
             }
         })
+        console.log(yang_bepergian);
         this.setState({yang_bepergian})
     }
 
@@ -129,23 +125,60 @@ class RDJK extends React.Component {
     }
 
     handleInputChange(e){
-        var data = {...this.state.data}
         if(e.target){
-            data[e.target.name] = e.target.value;
-            this.setState({data})
+            this.setState({[e.target.name] : e.target.value})
         }
+    }
+
+    resetForm(){
+        this.setState({
+            isSubmitBuatSurat: false,
+            isDownloadingSurat: false,
+            isLoading: false,
+            isTugasLoading: false,
+            isOutputLoading: false,
+            isProvLoading: false,
+            isKabLoading: false,
+            isOrgLoading: false,
+            importPgwModal: false,
+            ygBepergianModal: false,
+            tugasOptions: [],
+            nameOptions: [],
+            kompOptions: [],
+            provOptions: [],
+            kabOptions: [],
+            orgOptions: [],
+            yang_bepergian: [],
+            tugas: [],
+            posisi_kota: 'Luar Kota',
+            jenis_ang: 'Plane',
+            output: [],
+            kode_output: '',
+            prov: [],
+            kab: [],
+            org: [],
+            tgl_berangkat: new Date(),
+            tgl_kembali: new Date(),
+            tgl_ttd_surtug: new Date(),
+         }, () => {
+            socket.emit('surtug.getSetting', '', ( res_setting )=>{
+                this.setState({
+                    starting_sppd: this.state.starting_sppd.replace(/^\d{1,4}/, res_setting.last_nmr_surat)
+                })
+            })
+         })
     }
 
     sendDataForBuatSurat(toPdf = true, cb){
         //lihat data yang dikirim
         console.log(this.state);
         //kirim data ke server utk buat surat tugas, be = surtug.js
-        const { yang_bepergian, data } = this.state;
-        socket.emit('surtug_buat_surat', {toPdf: toPdf, yang_bepergian: yang_bepergian, data: data}, (pdfLink)=>{
+        socket.emit('surtug_buat_surat', {toPdf: toPdf, data: this.state}, (pdfLink)=>{
             if(pdfLink === false){
                 
             } else{
                 setPDFPreviewSRC(location.protocol+'//'+location.host+"/result/"+pdfLink)
+                this.resetForm()
             }
             this.setState({
                 isSubmitBuatSurat: false, isDownloadingSurat: false
@@ -153,7 +186,7 @@ class RDJK extends React.Component {
         })
     }
 
-    buatSurat(e, toPdf = true) {
+    buatSurat() {
         this.setState({isSubmitBuatSurat: true})
         this.sendDataForBuatSurat(true, ()=>{
             this.setState({ isSubmitBuatSurat: false });
@@ -167,14 +200,34 @@ class RDJK extends React.Component {
         })
     }
 
-    toggleimportPgwModal() {
+    toggleRiwayatSurtugModal() {
         this.setState({
-            importPgwModal: !this.state.importPgwModal
+            riwayatSuratModal: !this.state.riwayatSuratModal
         });
+        socket.emit('surtug.getAllSurtug', '', ( res_allSurtug )=>{
+            this.setState({
+                rowData: res_allSurtug
+            })
+        })
     }
 
     componentDidMount(){
-        setPDFPreviewSRC("http://localhost/result/surat_tugas.pdf")
+        setPDFPreviewSRC("http://localhost/result/surat_tugas.pdf");
+        socket.emit('surtug.getSetting', '', ( res_setting )=>{
+            this.setState({
+                starting_sppd: this.state.starting_sppd.replace(/^\d{1,4}/, res_setting.last_nmr_surat),
+                penanda_tgn_st_list: res_setting.ttd_st,
+                penanda_tgn_st: res_setting.ttd_st?res_setting.ttd_st[0]:{}, 
+                penanda_tgn_legalitas_list: res_setting.ttd_leg,
+                penanda_tgn_legalitas:  res_setting.ttd_leg? res_setting.ttd_leg[0]:{}
+            })
+        })
+
+        socket.emit('index.getTahunAnggaran', '', ( tahun_anggaran )=>{
+            this.setState( {
+                starting_sppd: this.state.starting_sppd.replace(/\d{4}$/, tahun_anggaran)
+            } )
+        })
     }
 
     render() {
@@ -183,8 +236,27 @@ class RDJK extends React.Component {
         const noLeftPadding = {paddingLeft: 0};
         const bold = {fontWeight: 'bold'}
         const noMarginBottom = {marginBottom: 0}
-
+        
         const {
+            isSubmitBuatSurat, 
+            isDownloadingSurat, 
+            isLoading, 
+            isTugasLoading,
+            isOutputLoading, 
+            isProvLoading, 
+            isKabLoading, 
+            isOrgLoading, 
+            tugasOptions,
+            nameOptions,
+            kompOptions,
+            provOptions,
+            kabOptions,
+            orgOptions,
+            yang_bepergian, 
+            penanda_tgn_st_list, 
+            penanda_tgn_legalitas_list, 
+            penanda_tgn_st_selected, 
+            penanda_tgn_legalitas_selected,
             starting_sppd, 
             tugas, 
             jenis_ang, 
@@ -199,21 +271,6 @@ class RDJK extends React.Component {
             penanda_tgn_st, 
             penanda_tgn_legalitas, 
             tgl_ttd_surtug
-        } = this.state.data
-        const {
-            isSubmitBuatSurat, 
-            isDownloadingSurat, 
-            isLoading, 
-            isOutputLoading, 
-            isProvLoading, 
-            isKabLoading, 
-            isOrgLoading, 
-            options, 
-            yang_bepergian, 
-            penanda_tgn_st_list, 
-            penanda_tgn_legalitas_list, 
-            penanda_tgn_st_selected, 
-            penanda_tgn_legalitas_selected
         } = this.state
 
         return (
@@ -233,14 +290,33 @@ class RDJK extends React.Component {
                                             <Col md="12">
                                                 <FormGroup>
                                                     <Label style={bold}>Nomor Surat <span>*</span></Label>
-                                                    <Input onChange={this.handleInputChange.bind(this)} type="text" id="starting_sppd" name='starting_sppd' value={starting_sppd} required/>
+                                                    <InputGroup>
+                                                        <Input onChange={this.handleInputChange.bind(this)} type="text" id="starting_sppd" name='starting_sppd' value={starting_sppd} required/>
+                                                        <InputGroupButton>
+                                                            <Button color="secondary" type='button' onClick={this.toggleRiwayatSurtugModal}><i className="icon-list"></i></Button>
+                                                            <Modal isOpen={this.state.riwayatSuratModal} toggle={this.toggleRiwayatSurtugModal}>
+                                                                <ModalHeader toggle={this.toggleRiwayatSurtugModal}>Riwayat Surat Tugas</ModalHeader>
+                                                                    <ModalBody>
+                                                                        <div  style={{height: 400, width: '100%', marginTop: 15}} className="ag-theme-fresh">
+                                                                            <AgGridReact
+                                                                                // properties
+                                                                                rowData={this.state.rowData}
+                                                                                columnDefs={this.state.columnDefs}>
+                                                                            </AgGridReact>
+                                                                        </div>
+                                                                    </ModalBody>
+                                                                <ModalFooter>
+                                                                <Button color="secondary" onClick={this.toggleRiwayatSurtugModal}>Kembali</Button>
+                                                                </ModalFooter>
+                                                            </Modal>
+                                                        </InputGroupButton>
+                                                    </InputGroup>
                                                 </FormGroup>
                                                 <FormGroup>
                                                     <Label style={bold}>Nama Anggota <span>*</span></Label>
                                                     <AsyncTypeahead
                                                         multiple
                                                         autoFocus={true}
-                                                        clearButton={true}
                                                         labelKey='nama'
                                                         isLoading={isLoading}
                                                         onSearch={query => {
@@ -248,11 +324,11 @@ class RDJK extends React.Component {
                                                             socket.emit('surtug_nama', query, function (pgw) {
                                                                 this.setState({
                                                                     isLoading: false,
-                                                                    options: pgw,
+                                                                    nameOptions: pgw,
                                                                 })
                                                             }.bind(this));
                                                         }}
-                                                        options={options}
+                                                        options={nameOptions}
                                                         selected={yang_bepergian}
                                                         onChange={(selected) => {
                                                             this.setState({yang_bepergian: selected});
@@ -265,21 +341,47 @@ class RDJK extends React.Component {
                                                     <Modal isOpen={this.state.ygBepergianModal} toggle={this.toggleYgBepergianModal} className='modal-lg'>
                                                         <ModalHeader toggle={this.toggleYgBepergianModal}>Anggota</ModalHeader>
                                                             <ModalBody>
-                                                                <HotTable root="hot" ref='anggotaHot' width="100%" height="640" manualColumnResize={true} settings={{
+                                                                <HotTable root="hot" ref='anggotaHot' height="640" manualColumnResize={true} settings={{
                                                                     data: yang_bepergian,
-                                                                    dataSchema: {_id: null, nama: null, gol: null, jabatan: null, lokasi: null, tgl_berangkat: null, tgl_kembali: null, jumlah_hari: null},
+                                                                    dataSchema: {
+                                                                        _id: null,
+                                                                        nama: '', 
+                                                                        gol: null, 
+                                                                        jabatan: null, 
+                                                                        lokasi: null, 
+                                                                        tgl_berangkat: null, 
+                                                                        tgl_kembali: null, 
+                                                                        jumlah_hari: null,
+                                                                        penanda_tgn_st_nama: null,
+                                                                        penanda_tgn_st_nip: null,
+                                                                        penanda_tgn_st_jabatan: null,
+                                                                    },
                                                                     colHeaders: true,
                                                                     rowHeaders: true,
-                                                                    colHeaders: ['Nama', 'Gol', 'Jabatan', 'Tujuan', 'Tanggal Berangkat', 'Tanggal Kembali', 'Jumlah Hari (Hari)'],
-                                                                    colWidths: [125, 20, 100, 200, 48, 48, 20],
+                                                                    colHeaders: [
+                                                                        'NIP',
+                                                                        'Nama', 
+                                                                        'Gol', 
+                                                                        'Jabatan', 
+                                                                        'Tujuan', 
+                                                                        'Tanggal Berangkat', 
+                                                                        'Tanggal Kembali', 
+                                                                        'Jumlah Hari (Hari)', 
+                                                                        'Penanda Tangan Surat Tugas', 
+                                                                        'NIP Penanda Tangan Surat Tugas',
+                                                                        'Jabatan Penanda Tangan Surat Tugas'
+                                                                        
+                                                                    ],
+                                                                    colWidths: [48, 125, 20, 100, 100, 48, 48, 20, 48, 48, 48],
                                                                     stretchH: 'all',
                                                                     minSpareRows: 1,
-                                                                    columns: [                                                                       
+                                                                    columns: [     
+                                                                        {data: '_id'},                                                                  
                                                                         {
                                                                             type: 'autocomplete',
                                                                             source: function (query, process) {
                                                                                 this.props.socket.emit('surtug_nama', query, function (data) {
-                                                                                    process(_.map(data, function(peg){ return {nama: peg.nama+' (NIP. '+peg._id+')'}}));
+                                                                                    process(_.map(data, function(peg){ return peg.nama+' (NIP. '+peg._id+')'}));
                                                                                 });
                                                                             }.bind(this),
                                                                             data: 'nama',
@@ -290,7 +392,10 @@ class RDJK extends React.Component {
                                                                         {data: 'lokasi'},
                                                                         {data: 'tgl_berangkat', type: 'date', dateFormat: 'DD/MM/YYYY', correctFormat: true},
                                                                         {data: 'tgl_kembali', type: 'date', dateFormat: 'DD/MM/YYYY', correctFormat: true},
-                                                                        {data: 'jumlah_hari', type: 'numeric'}
+                                                                        {data: 'jumlah_hari', type: 'numeric'},
+                                                                        {data: 'penanda_tgn_st_nama'},
+                                                                        {data: 'penanda_tgn_st_nip'},
+                                                                        {data: 'penanda_tgn_st_jabatan'},
                                                                     ],
                                                                     contextMenu: true,
                                                                     afterChange: function (changes, source) {
@@ -310,7 +415,6 @@ class RDJK extends React.Component {
                                                     <Row>
                                                         <Col md='9'>
                                                             <AsyncTypeahead
-                                                                clearButton={true}
                                                                 labelKey='urkmpnen'
                                                                 isLoading={isOutputLoading}
                                                                 onSearch={query => {
@@ -318,25 +422,23 @@ class RDJK extends React.Component {
                                                                     socket.emit('komponen_list', query, (data) => {
                                                                         this.setState({
                                                                             isOutputLoading: false,
-                                                                            options: data,
+                                                                            kompOptions: data,
                                                                         })
                                                                     });
                                                                 }}
-                                                                options={options}
+                                                                options={kompOptions}
                                                                 selected={output}
                                                                 onChange={(output) => {
-                                                                    var data = {...this.state.data}
-                                                                    var data = {...this.state.data}
-                                                                    if(output.length){
-                                                                        data.output = output;
-                                                                        data.kode_output = output[0].kdoutput+'.'+output[0].kdkmpnen;
-                                                                        data.tugas = 'Dalam Rangka '+toTitleCase(output[0].urkmpnen)
-                                                                        this.setState({data: {...data}});
-                                                                    }
+                                                                    this.setState({
+                                                                        kode_output : output[0]?output[0].kdoutput+'.'+output[0].kdkmpnen:'',
+                                                                        output: output,
+                                                                        tugas : output[0]?[{nama: 'Dalam Rangka '+toTitleCase(output[0].urkmpnen)}]:[]
+                                                                    });
                                                                 }}
                                                                 emptyLabel='Tidak ada hasil'
                                                                 highlightOnlyResult={true}
                                                                 selectHintOnEnter={true}
+                                                                allowNew={true}
                                                             />
                                                             <span className="help-block text-muted">uraian</span>
                                                         </Col>
@@ -348,7 +450,29 @@ class RDJK extends React.Component {
                                                 </FormGroup> 
                                                 <FormGroup>
                                                     <Label style={bold}>Tugas <span>*</span></Label>
-                                                    <Input onChange={this.handleInputChange.bind(this)} type="textarea" id="tugas" name='tugas' value={tugas} rows="2"/>
+                                                    <AsyncTypeahead
+                                                            labelKey='nama'
+                                                            isLoading={isTugasLoading}
+                                                            onSearch={query => {
+                                                                this.setState({isTugasLoading: true});
+                                                                socket.emit('komponen_list_extra', query, (data) => {
+                                                                    this.setState({
+                                                                        isTugasLoading: false,
+                                                                        tugasOptions: data,
+                                                                    })
+                                                                });
+                                                            }}
+                                                            options={tugasOptions}
+                                                            selected={tugas}
+                                                            onChange={(tugas) => {
+                                                                this.setState({
+                                                                    tugas: tugas,
+                                                                });
+                                                            }}
+                                                            emptyLabel='Tidak ada hasil'
+                                                            allowNew={true}
+                                                            selectHintOnEnter={true}
+                                                        />
                                                 </FormGroup>
                                                 <FormGroup>
                                                     <Label style={bold}>Lokasi <span>*</span></Label>
@@ -359,7 +483,6 @@ class RDJK extends React.Component {
                                                     </Col>
                                                     <Col md='9'>
                                                         <AsyncTypeahead
-                                                            clearButton={true}
                                                             labelKey='nama'
                                                             isLoading={isProvLoading}
                                                             onSearch={query => {
@@ -367,18 +490,16 @@ class RDJK extends React.Component {
                                                                 socket.emit('prov_list', {'q': query}, (data) => {
                                                                     this.setState({
                                                                         isProvLoading: false,
-                                                                        options: data,
+                                                                        provOptions: data,
                                                                     })
                                                                 });
                                                             }}
-                                                            options={options}
+                                                            options={provOptions}
                                                             selected={prov}
                                                             onChange={(prov) => {
-                                                                var data = {...this.state.data}
-                                                                if(prov.length){
-                                                                    data.prov = prov;
-                                                                    this.setState({data: {...data}});
-                                                                }
+                                                                this.setState({
+                                                                    prov: prov,
+                                                                });
                                                             }}
                                                             emptyLabel='Tidak ada hasil'
                                                             highlightOnlyResult={true}
@@ -392,28 +513,27 @@ class RDJK extends React.Component {
                                                     </Col>
                                                     <Col md='9'>
                                                         <AsyncTypeahead
-                                                            clearButton={true}
                                                             labelKey='nama'
                                                             isLoading={isKabLoading}
                                                             onSearch={query => {
                                                                 this.setState({isKabLoading: true});
+                                                                var syarat = { 'q': query }
                                                                 if(prov[0]){
-                                                                    socket.emit('kab_list', {'q': query, 'prov': prov[0]._id}, (data) => {
-                                                                        this.setState({
-                                                                            isKabLoading: false,
-                                                                            options: data,
-                                                                        })
-                                                                    });
+                                                                    syarat.prov = prov[0]._id
                                                                 }
+                                                                socket.emit('kab_list', syarat, (data) => {
+                                                                    this.setState({
+                                                                        isKabLoading: false,
+                                                                        kabOptions: data,
+                                                                    })
+                                                                });
                                                             }}
-                                                            options={options}
+                                                            options={kabOptions}
                                                             selected={kab}
                                                             onChange={(kab) => {
-                                                                var data = {...this.state.data}
-                                                                if(kab.length){
-                                                                    data.kab = kab;
-                                                                    this.setState({data: {...data}});
-                                                                }
+                                                                this.setState({
+                                                                    kab: kab,
+                                                                });
                                                             }}
                                                             emptyLabel='Tidak ada hasil'
                                                             highlightOnlyResult={true}
@@ -427,7 +547,6 @@ class RDJK extends React.Component {
                                                     </Col>
                                                     <Col md='9'>
                                                         <AsyncTypeahead
-                                                            clearButton={true}
                                                             labelKey='nama'
                                                             isLoading={isOrgLoading}
                                                             allowNew={true}
@@ -437,18 +556,16 @@ class RDJK extends React.Component {
                                                                 socket.emit('org_list', query, (data) => {
                                                                     this.setState({
                                                                         isOrgLoading: false,
-                                                                        options: data,
+                                                                        orgOptions: data,
                                                                     })
                                                                 });
                                                             }}
-                                                            options={options}
+                                                            options={orgOptions}
                                                             selected={org}
                                                             onChange={(org) => {
-                                                                var data = {...this.state.data}
-                                                                if(org.length){
-                                                                    data.org = org;
-                                                                    this.setState({data: {...data}});
-                                                                }
+                                                                this.setState({
+                                                                    org: org,
+                                                                });
                                                             }}
                                                             emptyLabel='Tidak ada hasil'
                                                             selectHintOnEnter={true}
@@ -475,33 +592,33 @@ class RDJK extends React.Component {
                                                     <Row>
                                                         <Col md='6'>
                                                             <Datetime onChange={params=>{
-                                                                var data = {...this.state.data}
+                                                                var tgl = params._d;
                                                                 if(params._d){
-                                                                    data['tgl_berangkat'] = params._d;
+                                                                    tgl = params._d;
                                                                 } else{
                                                                     if(/^\d{1,2}\s\w+\s\d{4}$/.test(params)){
-                                                                        data['tgl_berangkat'] = moment(params, 'DD MMMM YYYY')._d;
+                                                                        tgl = moment(params, 'DD MMMM YYYY')._d;
                                                                     } else{
-                                                                        data['tgl_berangkat'] = params;
+                                                                        tgl = params;
                                                                     }
                                                                 }
-                                                                this.setState({data})
+                                                                this.setState({tgl_berangkat: tgl})
                                                             }} closeOnSelect={true} dateFormat="DD MMMM YYYY" locale="id" timeFormat={false} value={tgl_berangkat}/>
                                                             <span className="help-block text-muted">berangkat</span>
                                                         </Col>
                                                         <Col md='6'>
                                                             <Datetime onChange={params=>{
-                                                                var data = {...this.state.data}
+                                                                var tgl = params._d;
                                                                 if(params._d){
-                                                                    data['tgl_kembali'] = params._d;
+                                                                    tgl = params._d;
                                                                 } else{
                                                                     if(/^\d{1,2}\s\w+\s\d{4}$/.test(params)){
-                                                                        data['tgl_kembali'] = moment(params, 'DD MMMM YYYY')._d;
+                                                                        tgl = moment(params, 'DD MMMM YYYY')._d;
                                                                     } else{
-                                                                        data['tgl_kembali'] = params;
+                                                                        tgl = params;
                                                                     }
                                                                 }
-                                                                this.setState({data})
+                                                                this.setState({tgl_kembali: tgl})
                                                             }} closeOnSelect={true} dateFormat="DD MMMM YYYY" isValidDate={ current=>{
                                                                 return current.isAfter( moment(tgl_berangkat).subtract(1, 'd') )
                                                             }} locale="id" timeFormat={false} value={tgl_kembali}/>
@@ -537,11 +654,9 @@ class RDJK extends React.Component {
                                                         id="penanda_tgn_st" 
                                                         name='penanda_tgn_st'
                                                         onChange={(e)=>{
-                                                            var data = {...this.state.data};
-                                                            data.penanda_tgn_st = _.findWhere(penanda_tgn_st_list, {_id: e.target.value});
                                                             this.setState({
                                                                 penanda_tgn_st_selected: e.target.value,
-                                                                data: {...data}
+                                                                penanda_tgn_st: _.findWhere(penanda_tgn_st_list, {_id: e.target.value})
                                                             })
                                                         }}
                                                         defaultValue={penanda_tgn_st_selected}>
@@ -555,11 +670,9 @@ class RDJK extends React.Component {
                                                         id="penanda_tgn_st" 
                                                         name='penanda_tgn_st'
                                                         onChange={(e)=>{
-                                                            var data = {...this.state.data};
-                                                            data.penanda_tgn_legalitas = _.findWhere(penanda_tgn_legalitas_list, {_id: e.target.value});
                                                             this.setState({
                                                                 penanda_tgn_legalitas_selected: e.target.value,
-                                                                data: {...data}
+                                                                penanda_tgn_legalitas: _.findWhere(penanda_tgn_legalitas_list, {_id: e.target.value})
                                                             })
                                                         }}
                                                         defaultValue={penanda_tgn_legalitas_selected}>
@@ -569,17 +682,17 @@ class RDJK extends React.Component {
                                                 <FormGroup>
                                                     <Label style={bold}>Tanggal TTD Surat Tugas <span>*</span></Label>
                                                     <Datetime onChange={params=>{
-                                                        var data = {...this.state.data}
+                                                        var tgl_ttd_surtug;
                                                         if(params._d){
-                                                            data['tgl_ttd_surtug'] = params._d;
+                                                            tgl_ttd_surtug = params._d;
                                                         } else{
                                                             if(/^\d{1,2}\s\w+\s\d{4}$/.test(params)){
-                                                                data['tgl_ttd_surtug'] = moment(params, 'DD MMMM YYYY')._d;
+                                                                tgl_ttd_surtug = moment(params, 'DD MMMM YYYY')._d;
                                                             } else{
-                                                                data['tgl_ttd_surtug'] = params;
+                                                                tgl_ttd_surtug = params;
                                                             }
                                                         }
-                                                        this.setState({data})
+                                                        this.setState({tgl_ttd_surtug})
                                                     }} closeOnSelect={true} dateFormat="DD MMMM YYYY" locale="id" timeFormat={false} value={tgl_ttd_surtug}/>
                                                 </FormGroup>
                                                 <ButtonGroup>

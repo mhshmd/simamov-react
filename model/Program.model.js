@@ -3,6 +3,10 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 var ProgramSchema = new Schema({
+    'tipe': {
+        default: 'program',
+        type: String
+    },
     'thang': {
         type: Number,
         default: new Date().getFullYear()

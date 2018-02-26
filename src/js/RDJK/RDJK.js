@@ -498,7 +498,6 @@ class RDJK extends React.Component {
                                                 <ButtonGroup>
                                                     <Button type="button" onClick={this.buatSurat} color="primary">{isSubmitBuatSurat?<i className="fa fa-spinner fa-spin fa-1x fa-fw"></i>:''} Buat Surat</Button>
                                                     <Button type="button" onClick={this.downloadSurat} >{isDownloadingSurat?<i className="fa fa-spinner fa-spin fa-1x fa-fw"></i>:''} Download</Button>
-                                                    <Button onClick={this.toggleAnggotaModal}>Simpan Template</Button>
                                                 </ButtonGroup>
                                             </Col>
                                         </Row>

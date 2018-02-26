@@ -34,6 +34,7 @@
                                     </tbody>
                                 </table>
                                 <button id="btn-tbh-pgw-stis">Tambah Pegawai</button>
+                                <button id="btn-rekap-pajak">Rekap Pajak</button>
                             </div>
                             <div class="tab-pane" id="pegawai_bps" role="tabpanel">
                                 <h6 class="text-center">Pegawai BPS</h3>
@@ -1589,6 +1590,12 @@
             $("input[name=tbh_jenis_pgw][value='pegawai']").prop('checked', true);
             $('#tambah_pegawai').modal('show');
         });
+
+        $('#btn-rekap-pajak').click(()=>{
+            socket.emit('pok.rekapPajak_all', 'ok', function(link){
+                window.open(location.protocol+"//"+$(location).attr('host')+'/result/rekapPajak/'+link,'_blank');
+            })
+        })
 
         $('#btn-tbh-pgw-bps').click(function(){
             $('#nip span, #gol span, #jab span').remove();

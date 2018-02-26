@@ -232,6 +232,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="surtug"><i class="icon-plane"></i> Surat Tugas (React)</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="surtug/perhitungan"><i class="icon-check"></i> Perhitungan Surat Tugas (React)</a>
+                    </li>
                     {{#if admin}}
                     <li class="nav-item">
                         <a class="nav-link" href="pegawai" id="pegawai_menu"><i class="icon-people"></i> Pengelolaan Pegawai</a>
@@ -296,6 +299,7 @@
 
     <script type="text/javascript">
         var socket = io.connect($(location).attr('host'));
+        console.log($(location).attr('host'))
 
         if(!socket) location.reload();
 

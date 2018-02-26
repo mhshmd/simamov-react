@@ -3,6 +3,10 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 var KegiatanSchema = new Schema({
+    'tipe': {
+        default: 'kegiatan',
+        type: String
+    },
     'thang': {
         type: Number,
         default: new Date().getFullYear()

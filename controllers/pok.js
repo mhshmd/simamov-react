@@ -99,6 +99,204 @@ pok.socket = function(io, connections, client, loggedUser){
 	//join sesama tahun anggaran utk broadcast
 	client.join(thang);
 
+	client.on('pok.getSum', function (parent) {
+		const syarat = {active: true, thang: +thang}
+		if(parent.kdprogram){
+			syarat.kdprogram = parent.kdprogram
+		}
+		if(parent.kdgiat){
+			syarat.kdgiat = parent.kdgiat
+		}
+		if(parent.kdoutput){
+			syarat.kdoutput = parent.kdoutput
+		}
+		if(parent.kdsoutput){
+			syarat.kdsoutput = parent.kdsoutput
+			return
+		}
+		console.log(syarat);
+
+		//total anggaran
+		DetailBelanja.aggregate([
+			{ $match: syarat },
+			{ $project: { jumlah: 1, realisasi: { tgl_timestamp: 1, jumlah: 1 } } },
+			{ $group: {
+					_id: null,
+					total_anggaran: {$sum: '$jumlah'}
+
+				}
+			}
+		], (err, result) => {
+			client.emit('monev.home.updateItemSums', {id: parent._id+'j', value: result[0]?result[0].total_anggaran:0});
+		})
+		//total realisasi
+		DetailBelanja.aggregate([
+			{ $match: {active: true, thang: +thang, kdprogram: parent.kdprogram} },
+			{ $project: { realisasi: { tgl_timestamp: 1, jumlah: 1 } } },
+			{ $unwind: '$realisasi' },
+			{ $group: {
+					_id: null,
+					total_realisasi: {$sum: '$realisasi.jumlah'},
+
+				}
+			}
+		], (err, result) => {
+			client.emit('monev.home.updateItemSums', {id: parent._id+'rp', value:result[0]?result[0].total_realisasi:0});
+		})		
+	})
+
+	client.on('pok.getProgram', function (param, cb) {
+		var rows = []
+		Program.find( { active: true, thang: +thang }, ( err, res_progs ) => {
+			var task_prog = []
+			_.each( res_progs, ( prog, i_prog, arr_prog )=>{
+				//program
+				task_prog.push( ( cb_prog )=>{
+					rows.push( prog );
+					var task_keg = []
+					Kegiatan.find( { active: true, thang: +thang, kdprogram: prog.kdprogram }, ( err, res_kegs ) => {
+						_.each( res_kegs, ( keg, i_keg, arr_keg )=>{
+							//kegiatan
+							task_keg.push( ( cb_keg )=>{
+								rows.push( keg )
+								Output.find( { 
+									active: true, thang: +thang,
+									kdprogram: prog.kdprogram, 
+									kdgiat: keg.kdgiat
+								 }, ( err, res_outps ) => {
+									var task_outp = []
+									_.each( res_outps, ( outp, i_outp, arr_outp )=>{
+										task_outp.push( ( cb_outp )=>{
+											rows.push( outp )
+											SubOutput.find( {
+												active: true, thang: +thang, 
+												kdprogram: prog.kdprogram, 
+												kdgiat: keg.kdgiat, 
+												kdoutput: outp.kdoutput
+											 }, ( err, res_soutps ) => {
+												var task_soutp = []
+												_.each( res_soutps, ( soutp, i_soutp, arr_soutp )=>{
+													task_soutp.push( ( cb_soutp )=>{
+														rows.push( soutp )
+														Komponen.find( { 
+															active: true, thang: +thang,
+															kdprogram: prog.kdprogram, 
+															kdgiat: keg.kdgiat, 
+															kdoutput: outp.kdoutput, 
+															kdsoutput: soutp.kdsoutput
+														 }, ( err, res_komps ) => {
+															var task_komp = []
+															_.each( res_komps, ( komp, i_komp, arr_komp )=>{
+																task_komp.push( ( cb_komp )=>{
+																	rows.push( komp )
+																	SubKomponen.find( { 
+																		active: true, thang: +thang,
+																		kdprogram: prog.kdprogram, 
+																		kdgiat: keg.kdgiat, 
+																		kdoutput: outp.kdoutput, 
+																		kdsoutput: soutp.kdsoutput, 
+																		kdkmpnen: komp.kdkmpnen
+																	 }, ( err, res_skomps ) => {
+																		var task_skomp = []
+																		_.each( res_skomps, ( skomp, i_skomp, arr_skomp )=>{
+																			task_skomp.push( ( cb_skomp )=>{
+																				rows.push( skomp )
+																				Akun.find( { 
+																					active: true, thang: +thang,
+																					kdprogram: prog.kdprogram, 
+																					kdgiat: keg.kdgiat, 
+																					kdoutput: outp.kdoutput, 
+																					kdsoutput: soutp.kdsoutput, 
+																					kdkmpnen: komp.kdkmpnen, 
+																					kdskmpnen: skomp.kdskmpnen
+																				 }, ( err, res_akuns ) => {
+																					var task_akun = []
+																					_.each( res_akuns, ( akun, i_akun, arr_akun )=>{
+																						task_akun.push( ( cb_akun )=>{
+																							rows.push( akun )
+																							DetailBelanja.find( { 
+																								active: true, thang: +thang,
+																								kdprogram: prog.kdprogram, 
+																								kdgiat: keg.kdgiat, 
+																								kdoutput: outp.kdoutput, 
+																								kdsoutput: soutp.kdsoutput, 
+																								kdkmpnen: komp.kdkmpnen, 
+																								kdskmpnen: skomp.kdskmpnen, 
+																								kdakun: akun.kdakun
+																							 }, ( err, res_details ) => {
+																								var task_detail = []
+																								_.each( res_details, ( detail, i_detail, arr_detail )=>{
+																									task_detail.push( ( cb_detail )=>{
+																										rows.push( detail )
+																										cb_detail( null, 'detail_finish' )
+																									} )
+																								} )
+									
+																								async.series( task_detail, ( err, finish_akun )=>{
+																									cb_akun( null, 'akun_finish' )
+																								} )
+																							} )
+																						} )
+																					} )
+						
+																					async.series( task_akun, ( err, finish_skomp )=>{
+																						cb_skomp( null, 'skomp_finish' )
+																					} )
+																				} )
+																			} )
+																		} )
+			
+																		async.series( task_skomp, ( err, finish_komp )=>{
+																			cb_komp( null, 'komp_finish' )
+																		} )
+																	} )
+																} )
+															} )
+
+															async.series( task_komp, ( err, finish_soutp )=>{
+																cb_soutp( null, 'soutp_finish' )
+															} )
+														} )
+													} )
+												} )
+
+												async.series( task_soutp, ( err, finish_outp )=>{
+													cb_outp( null, 'outp_finish' )
+												} )
+											} )
+										} )
+									} )
+
+									async.series( task_outp, ( err, finish_outp )=>{
+										cb_keg( null, 'keg_finish' )
+									} )
+								} )
+							} )
+						} )
+
+						async.series( task_keg, ( err, finish_keg )=>{
+							cb_prog( null, 'prog_finish' )
+						} )
+					} )
+				} )
+			} )			
+
+			async.series( task_prog, ( err, finish_prog )=>{
+				cb( rows )
+			} )		
+		} )
+	})
+
+	client.on('pok.getProgramUraian', function (kdprogram, cb) {
+		console.log(kdprogram);
+		Program.findOne( {kdprogram: kdprogram}, 'uraian', ( err, res_uraian ) => {
+			if(!err){
+				console.log(res_uraian);
+				cb(res_uraian.uraian);
+			}
+		} )
+	})
+
     client.on('pok_title_submit', function (pok_name) {
     	//Ubah nama
 		Setting.findOne({type:'pok', 'thang': thang}, 'name timestamp old', function(err, pok_setting){
@@ -1593,6 +1791,7 @@ pok.socket = function(io, connections, client, loggedUser){
     })
 
     client.on('entry_submit', function (new_entry, cb){
+		console.log(new_entry);
     	//init tahun, bulan, lower/upper timestamp
     	var y = thang || new Date().getFullYear();
 		var m = new_entry.month || new Date().getMonth();
@@ -1607,11 +1806,11 @@ pok.socket = function(io, connections, client, loggedUser){
 			//fungsi umum utk menyimpan
 			function submit_entry(item, callback){
 				//validasi tgl entry (harus dlm tahun anggaran)
-				if(item.tgl_timestamp <= Math.round(new Date(y, 0, 1).getTime()/1000)
-		    		|| item.tgl_timestamp >= Math.round(new Date(y, 12, 0).getTime()/1000)){
-		    		errorHandler(client, 'Mohon cek tanggal entrian.');
-		    		return;
-		    	}
+				// if(item.tgl_timestamp <= Math.round(new Date(y, 0, 1).getTime()/1000)
+		    	// 	|| item.tgl_timestamp >= Math.round(new Date(y, 12, 0).getTime()/1000)){
+		    	// 	errorHandler(client, 'Mohon cek tanggal entrian.');
+		    	// 	return;
+		    	// }
 
 		    	//init total sampai bulan ini
 		    	var total_sampai_bln_ini = 0;
@@ -1779,11 +1978,11 @@ pok.socket = function(io, connections, client, loggedUser){
 				//jika blm pernah
 				if(!result){
 					//validasi tgl entrian
-					if(new_entry.data.tgl_timestamp <= Math.round(new Date(y, 0, 1).getTime()/1000)
-			    		|| new_entry.data.tgl_timestamp >= Math.round(new Date(y, 12, 0).getTime()/1000)){
-			    		errorHandler(client, 'Mohon cek tanggal entrian.');
-			    		return;
-			    	}
+					// if(new_entry.data.tgl_timestamp <= Math.round(new Date(y, 0, 1).getTime()/1000)
+			    	// 	|| new_entry.data.tgl_timestamp >= Math.round(new Date(y, 12, 0).getTime()/1000)){
+			    	// 	errorHandler(client, 'Mohon cek tanggal entrian.');
+			    	// 	return;
+			    	// }
 
 			    	//init total, user
 		    		var total_sampai_bln_ini = 0;
@@ -1860,7 +2059,69 @@ pok.socket = function(io, connections, client, loggedUser){
 					cb(new_entry.data.penerima_nama+', Rp'+new_entry.data.jumlah+', Tgl '+new_entry.data.tgl+' sudah pernah dientry.')
 				}
 		})
-    })
+	})
+	
+	client.on('pok.rekapPajak_all', function (data, cb){
+		var row = {}
+		DetailBelanja.find( { thang: thang, realisasi: { $exists: true, $ne: [] } }, 'realisasi', ( err, res_allRealisasi ) => {
+			// console.log(res_allRealisasi);
+			_.each(res_allRealisasi, function(detail, index, list){
+				_.each(detail.realisasi, function(realisasi, index, list){
+					if( /\d{8}\s\d{6}\s\d\s\d{3}/.test( realisasi.penerima_id ) ){
+						if(row[ realisasi.penerima_id ]){
+							row[ realisasi.penerima_id ].jumlah += realisasi.jumlah
+							row[ realisasi.penerima_id ].pph21 += realisasi.pph21
+						} else{
+							row[ realisasi.penerima_id ] = {}
+							row[ realisasi.penerima_id ].penerima_nama = realisasi.penerima_nama
+							// row[ realisasi.penerima_id ].nip = realisasi.nip
+							// row[ realisasi.penerima_id ].gol = realisasi.gol
+							// row[ realisasi.penerima_id ].jabatan = realisasi.jabatan
+							row[ realisasi.penerima_id ].jumlah = realisasi.jumlah
+							row[ realisasi.penerima_id ].pph21 = realisasi.pph21
+						}
+					}
+				})
+			})
+			var arr = [];
+			var task_row = []
+			_.forEach(row, function(e, k) {
+				task_row.push(( cb_oToA )=>{
+					Pegawai.findOne( { _id: k }, 'nama nip gol jabatan', ( err, pgw ) => {
+						arr.push({
+							nama: pgw.nama,
+							nip: pgw._id,
+							gol: pgw.gol,
+							jabatan: pgw.jabatan,
+							bruto: e.jumlah,
+							pph: e.pph21,
+							netto: e.jumlah - e.pph21
+						})
+						cb_oToA(null, pgw.nama+' ok')
+					} )
+				})
+			});
+			async.auto(task_row, ( err, finish )=>{
+				async.series( [cb_1 => {
+					generateXlsx(
+						arr, 
+						mergeDataToTemplate_rekapPajak,
+						false, //apakah pdf
+						__dirname+"/../template/RekapPajak.xlsx", //path +nama template xlsx
+						__dirname+"/../template/output/rekapPajak/"+moment().format('DD-MM-YYYY-hh-mm-ss')+"-rekap-pajak.xlsx", //path + nama outp docx
+						__dirname+"/../template/output/rekapPajak/"+moment().format('DD-MM-YYYY-hh-mm-ss')+"-rekap-pajak.pdf", //path + nama outp pdf
+						cb_1
+					);
+				}], ( err, finish2 ) => {
+					// console.log( finish2[0] );
+					setTimeout( ()=>{
+						cb(finish2[0])
+					}, 1000)
+				} )
+			})
+			
+		} )
+	})
 
     client.on('riwayat_init', function (data, cb){
     	if((!data.detail_id || data.detail_id == '--pilih--') && !data.call_from_pengguna){
@@ -2746,17 +3007,46 @@ function generateDocx(data, toPDF, docxTemplatePath, outputDocxPath, outputPDFPa
     
 }
 
+function mergeDataToTemplate_rekapPajak(data, workbook) {
+	var row = 5;
+	var nmr = 1;
+
+	_.each(data, function(item, index, list){
+		var r;
+		r = workbook.sheet(0).range('A'+row+':H'+row)
+		r.value([[
+			nmr++,
+			item.nama,
+			item.nip,
+			item.gol,
+			item.jabatan,
+			item.bruto,
+			item.pph,
+			item.netto,
+		]]).style('verticalAlignment', 'center');
+		row++;
+	})
+
+	//border
+		//NAMA2
+		workbook.sheet(0).range('A5'+':H'+(row-1)).style('border', true)
+	//format uang
+		workbook.sheet(0).range('F5'+':H'+(row-1)).style('numberFormat', '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)');
+}
+
 const kopTransform = (data, workbook)=>{
 	workbook.definedName("kprog").value(': (054.01.'+data.pok.program.kdprogram+')');
 	workbook.definedName("kkeg").value(': ('+data.pok.kegiatan.kdgiat+')');
 	workbook.definedName("koutp").value(': ('+data.pok.output.kdoutput+')');
 	workbook.definedName("kkomp").value(': ('+data.pok.komponen.kdkmpnen+')');
+	workbook.definedName("kskomp").value(': ('+data.pok.skomponen.kdskmpnen+')');
 	workbook.definedName("kakun").value(': ('+data.pok.akun.kdakun+')');
 
 	workbook.definedName("prog").value(data.pok.program.uraian.toUpperCase());
 	workbook.definedName("keg").value(data.pok.kegiatan.uraian.toUpperCase());
 	workbook.definedName("outp").value(data.pok.output.uraian.toUpperCase());
-	workbook.definedName("komp").value(data.pok.komponen.urkmpnen.toUpperCase());
+	workbook.definedName("skomp").value(data.pok.komponen.urkmpnen.toUpperCase());
+	workbook.definedName("komp").value(data.pok.skomponen.urskmpnen.toUpperCase());
 	workbook.definedName("akun").value(data.pok.akun.uraian.toUpperCase());
 	workbook.definedName("tgl").value(': '+data.waktu_overall.toUpperCase());
 }

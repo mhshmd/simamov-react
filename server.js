@@ -211,6 +211,7 @@ io.on('connection', function(client) {
 				return;
 			}
 			
+			index.socket(io, connections, client, loggedUser);
 			pok.socket(io, connections, client, loggedUser);
 			sppd.socket(io, connections, client, loggedUser);
 			surtug.socket(io, connections, client, loggedUser);

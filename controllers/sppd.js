@@ -103,17 +103,12 @@ sppd.socket = function(io, connections, client, loggedUser){
         } else{
             q = q.replace(/\\/g, '');
         }
-        Komponen.find({"thang": thang, "urkmpnen": new RegExp(q, "i"), 'active': true}, 'kdkmpnen urkmpnen', function(err, custs1){
-            CustomEntity.find({"nama": new RegExp(q, "i"), 'type': 'tugas'}, function(err, custs2){
-                _.each(custs1, function(item, index, list){
-                    custs1[index].d = levenshtein.get(q, item.urkmpnen);
-                })
-                _.each(custs2, function(item, index, list){
-                    custs2[index].d = levenshtein.get(q, item.nama);
-                })
-                custs = _.sortBy(custs1.concat(custs2), function(o) { return o.d; })
-                cb(custs);
+        CustomEntity.find({"nama": new RegExp(q, "i"), 'type': 'tugas'}, function(err, custs2){
+            _.each(custs2, function(item, index, list){
+                custs2[index].d = levenshtein.get(q, item.nama);
             })
+            custs = _.sortBy(custs2, function(o) { return o.d; })
+            cb(custs);
         })
     })
     client.on('lokasi_list', function (q, cb){

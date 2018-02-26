@@ -3,6 +3,10 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 var OutputSchema = new Schema({
+    'tipe': {
+        default: 'output',
+        type: String
+    },
     'thang': {
         type: Number,
         default: new Date().getFullYear()

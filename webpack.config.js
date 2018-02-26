@@ -1,6 +1,7 @@
 const webpack = require('webpack');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const extractCSS = new ExtractTextPlugin('[name].fonts.css');
+const path = require('path');
 
 var config = {
     entry: __dirname+'/src/js/Surtug/index.js',
@@ -9,9 +10,10 @@ var config = {
         path: __dirname+'/js/view',
         filename: 'surtug.js',
     },
-    devServer: {
-        inline: true,
-        port: 8080
+    resolve: {
+      alias: {
+          "ag-grid": path.resolve('./node_modules/ag-grid')
+      }
     },
     module: {
         rules: [
