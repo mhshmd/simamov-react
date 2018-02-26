@@ -1,0 +1,1 @@
+{"options":{},"indexes":[{"v":2,"key":{"_id":1},"name":"_id_","ns":"simamov.my_api_limits_coll"},{"v":2,"key":{"expires":1.0},"name":"expires_1","ns":"simamov.my_api_limits_coll","expireAfterSeconds":0.0}]}
