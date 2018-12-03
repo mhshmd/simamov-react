@@ -10,7 +10,7 @@ const SettingSPPD = require('../model/SettingSPPD.model')
 const levenshtein = require('fast-levenshtein');
 const _ = require('underscore')
 var fs = require('fs');
-var msopdf = require('node-msoffice-pdf');
+// var msopdf = require('node-msoffice-pdf');
 //modul docx
 const Docxtemplater = require('docxtemplater');
 const JSZip = require('jszip');

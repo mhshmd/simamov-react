@@ -19,7 +19,7 @@ var PDFMerge = require('pdf-merge');
 var pdftkPath = 'C:\\Program Files (x86)\\PDFtk Server\\bin\\pdftk.exe';
 
 //Docx to Pdf
-var msopdf = require('node-msoffice-pdf');
+// var msopdf = require('node-msoffice-pdf');
 
 const XlsxPopulate = require('xlsx-populate');
 
@@ -935,6 +935,30 @@ function handleSuratTugas(data, cb, res, user_id){
         data.nama_lengkap = JSON.parse(data.nama_lengkap_temp);
     }
     data.yang_bepergian = [];
+    console.log('boom');
+    //======
+    var ImageModule=require('docxtemplater-image-module')
+
+    var opts = {}
+    opts.centered = false;
+    opts.getImage=function(tagValue, tagName) {
+        return fs.readFileSync(tagValue);
+    }
+
+    opts.getSize=function(img,tagValue, tagName) {
+        return [150,150];
+    }
+
+    var imageModule=new ImageModule(opts);
+
+    var qr = require('qr-image');
+
+    let nomor_surtug = 'B-201/7404/09/2018';
+
+    var qr_png = qr.image(nomor_surtug, { type: 'png' });
+    qr_png.pipe(require('fs').createWriteStream('qr_img/'+nomor_surtug.replace(/\//g, '-')+'.png'));
+
+    //======
     var current_timestamp = Math.round(new Date().getTime()/1000);
     var sppd_template = fs.readFileSync(__dirname+"/../template/surat_tugas.docx","binary");
     var last_nmr_surat = 1;
@@ -942,7 +966,8 @@ function handleSuratTugas(data, cb, res, user_id){
     var sppd_setting = {};
 
     var zip = new JSZip(sppd_template);
-    var doc = new Docxtemplater().loadZip(zip);
+    var doc = new Docxtemplater().attachModule(imageModule).loadZip(zip);
+    data.image = __dirname+"/../qr_img/"+nomor_surtug.replace(/\//g, '-')+'.png';
     
     if(!data.kab) delete data.kab;
 

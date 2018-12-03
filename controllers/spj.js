@@ -18,7 +18,7 @@ var xl = require('excel4node');
 const XlsxPopulate = require('xlsx-populate');
 
 //Xlsx to Pdf
-var msopdf = require('node-msoffice-pdf');
+// var msopdf = require('node-msoffice-pdf');
 
 var Pegawai = require(__dirname+"/../model/Pegawai.model");
 

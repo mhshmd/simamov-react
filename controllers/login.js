@@ -72,6 +72,7 @@ login.post('/', bruteforce.prevent, function(req, res){
                    .digest('hex');
 	//cek login ke db
 	User.findOne({ 'username':  req.body.username, 'password': hash, active: true}, function (err, user) {
+		console.log(hash,user)
 		if(req.cookies.last_try_ts){
 			if(req.cookies.last_try_ts + 300 < Math.round(new Date().getTime()/1000)){
 				res.cookie( 'last_try_ts', 0 )
@@ -82,38 +83,39 @@ login.post('/', bruteforce.prevent, function(req, res){
 			//jika koneksi error
 			res.send('Database bermasalah, mohon hubungi admin');
 			return;
-		} else if(!user || req.cookies.login_failed > 4){
-			//jika user tdk ada
-			var href = '';
-			if(req.query.href){
-				href = '?href='+req.query.href;
-			}
+		} 
+		// else if(!user || req.cookies.login_failed > 4){
+		// 	//jika user tdk ada
+		// 	var href = '';
+		// 	if(req.query.href){
+		// 		href = '?href='+req.query.href;
+		// 	}
 
-			Program.findOne().sort({'thang': 1}).exec(function(error, programs) {
-				var thang = [];
-				if(!programs){
-					thang = [{thang: new Date().getFullYear()}];
-				} else {
-					for (var i = (programs.thang); i < new Date().getFullYear()+1; i++) {
-						thang.push({thang: i});
-					}
-				}
-				var message = 'Username atau password salah'
-				if(!req.cookies.login_failed){
-					res.cookie( 'login_failed', 1 )
-				} else{
-					res.cookie( 'login_failed', req.cookies.login_failed = +req.cookies.login_failed + 1 )
-				}
-				if(req.cookies.login_failed > 4){
-					message = 'Anda salah memasukkan username/password 5 kali. Silahkan masukkan lagi setelah 5 menit.';
-					if(!req.cookies.last_try_ts){
-					res.cookie( 'last_try_ts', Math.round(new Date().getTime()/1000) )
-					}					
-				}
-				res.render('login', {layout: false, href: href, message: message, 'thang': thang, 'this_year': new Date().getFullYear()});
-			})
-			return;
-		}
+		// 	Program.findOne().sort({'thang': 1}).exec(function(error, programs) {
+		// 		var thang = [];
+		// 		if(!programs){
+		// 			thang = [{thang: new Date().getFullYear()}];
+		// 		} else {
+		// 			for (var i = (programs.thang); i < new Date().getFullYear()+1; i++) {
+		// 				thang.push({thang: i});
+		// 			}
+		// 		}
+		// 		var message = 'Username atau password salah'
+		// 		// if(!req.cookies.login_failed){
+		// 		// 	res.cookie( 'login_failed', 1 )
+		// 		// } else{
+		// 		// 	res.cookie( 'login_failed', req.cookies.login_failed = +req.cookies.login_failed + 1 )
+		// 		// }
+		// 		// if(req.cookies.login_failed > 4){
+		// 		// 	message = 'Anda salah memasukkan username/password 5 kali. Silahkan masukkan lagi setelah 5 menit.';
+		// 		// 	if(!req.cookies.last_try_ts){
+		// 		// 	res.cookie( 'last_try_ts', Math.round(new Date().getTime()/1000) )
+		// 		// 	}					
+		// 		// }
+		// 		res.render('login', {layout: false, href: href, message: message, 'thang': thang, 'this_year': new Date().getFullYear()});
+		// 	})
+		// 	return;
+		// }
 
 		//set cookies utk user id
 		res.cookie( 'uid', user._id )
